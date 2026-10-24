@@ -132,7 +132,19 @@
 
 ## 2. 安装与启动
 
-### 方式一：双击 `start.bat`（推荐给 Windows 用户）
+### 免安装便携版（Windows x64）
+
+下载并解压：
+
+`FS-Prompt-Studio-v1.4.0-Windows-x64-portable.zip`
+
+1. 解压到任意目录（中文路径也可以）；
+2. 双击 `start.bat`；
+3. 浏览器自动打开 <http://127.0.0.1:8787>。
+
+内置生产构建、`node_modules` 与 Node 运行时，**不需要 `npm install`**。关闭命令行窗口即停止服务；数据仍保存在浏览器 IndexedDB 中。
+
+### 方式一：双击 `start.bat`（源码开发版）
 
 双击根目录的 `start.bat`：
 

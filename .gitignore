@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist-server/
+release/
+FS-Prompt-Studio-*.zip
 coverage/
 .vite/
 artifacts/
