@@ -1,6 +1,6 @@
 import { useAppStore } from '../../store/appStore';
+import { PROJECT } from '../../domain/project';
 import { Badge, Button, SectionLabel } from '../ui/primitives';
-import { Icon } from '../ui/Icon';
 
 export function AboutSettings() {
   const updateSettings = useAppStore((state) => state.updateSettings);
@@ -11,11 +11,11 @@ export function AboutSettings() {
     <div className="settings-section about-section">
       <div className="about-hero">
         <span className="brand-mark about-mark">
-          <Icon name="wand" size={24} />
+          <img className="brand-icon" src="/logo-mark.svg" alt="" />
         </span>
         <div>
-          <h3>FS-Prompt Studio</h3>
-          <p>中文优先的 AI 生图提示词编辑器 · v1.3.0</p>
+          <h3>{PROJECT.name}</h3>
+          <p>{PROJECT.tagline} · v{PROJECT.version}</p>
         </div>
         <Badge tone="accent">本地优先</Badge>
       </div>
@@ -24,6 +24,74 @@ export function AboutSettings() {
         为不熟悉英文提示词语法的中文用户设计。写中文草稿，翻译成英文提示词，逐段对照检查，
         用片段控制标签，管理 LoRA 与权重，保存成品与历史版本。所有数据默认只保存在当前浏览器。
       </p>
+
+      <SectionLabel hint="作者与出处">项目信息</SectionLabel>
+      <div className="project-meta-grid">
+        <div>
+          <span>作者 / 维护</span>
+          <strong>{PROJECT.author}</strong>
+        </div>
+        <div>
+          <span>版本</span>
+          <strong>v{PROJECT.version}</strong>
+        </div>
+        <div>
+          <span>许可</span>
+          <strong>非商用 · 必须署名</strong>
+        </div>
+        <div>
+          <span>图标</span>
+          <a href={PROJECT.iconUrl} target="_blank" rel="noopener noreferrer">
+            {PROJECT.iconName}（{PROJECT.iconLicense}）
+          </a>
+        </div>
+      </div>
+
+      <div className="project-links" aria-label="项目与作者链接">
+        <a className="project-link" href={PROJECT.github} target="_blank" rel="noopener noreferrer">
+          GitHub 项目
+        </a>
+        <a className="project-link" href={PROJECT.bilibili} target="_blank" rel="noopener noreferrer">
+          Bilibili
+        </a>
+        <a className="project-link" href={PROJECT.douyin} target="_blank" rel="noopener noreferrer">
+          抖音
+        </a>
+        <a className="project-link" href={PROJECT.afdian} target="_blank" rel="noopener noreferrer">
+          爱发电
+        </a>
+        <a className="project-link" href={PROJECT.blog} target="_blank" rel="noopener noreferrer">
+          博客
+        </a>
+        {PROJECT.emails.map((email) => (
+          <a className="project-link" key={email} href={`mailto:${email}`}>
+            {email}
+          </a>
+        ))}
+      </div>
+
+      <div className="license-card">
+        <div className="license-card-head">
+          <strong>许可协议 · {PROJECT.license}</strong>
+          <Badge tone="warning">禁止商用</Badge>
+        </div>
+        <p>{PROJECT.licenseSummary}</p>
+        <p className="license-attribution">
+          转载、修改、分发或部署时必须保留「{PROJECT.name} by {PROJECT.author}」署名与项目出处；
+          商业使用需事先获得作者书面授权。
+        </p>
+        <div className="license-links">
+          <a href={PROJECT.licensePath} target="_blank" rel="noopener noreferrer">
+            查看完整许可
+          </a>
+          <a href={PROJECT.github} target="_blank" rel="noopener noreferrer">
+            项目源码
+          </a>
+          <a href={`mailto:${PROJECT.emails[0]}?subject=FS-Prompt%20Studio%20商业授权`}>
+            申请商业授权
+          </a>
+        </div>
+      </div>
 
       <SectionLabel>核心能力</SectionLabel>
       <ul className="settings-list">
@@ -94,6 +162,7 @@ export function AboutSettings() {
       </div>
 
       <p className="about-footer">
+        © 2026 {PROJECT.author} · {PROJECT.name} · 非商用需署名。
         本应用与 Stability AI、Black Forest Labs、ComfyUI、Google、OpenAI、DeepL 无隶属关系。
         提示词与生成结果由用户自行负责。
       </p>

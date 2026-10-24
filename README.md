@@ -20,6 +20,21 @@
 | --- |
 | ![负面提示词中英双框](docs/screenshots/negative-bilingual.png) |
 
+## 项目信息
+
+![设置关于页](docs/screenshots/about.png)
+
+- 作者 / 维护：**FSYL001**
+- 版本：**v1.4.0**
+- GitHub：<https://github.com/FSYL001/FS-Prompt-Studio>
+- Bilibili：<https://space.bilibili.com/450000657>
+- 抖音：<https://www.douyin.com/user/MS4wLjABAAAAzWfG071S0Ol0_wF3xT1i0oL5eSpPdiYZZY_gKib9S_M>
+- 爱发电：<https://ifdian.net/a/fsyl001>
+- 博客：<https://blog.fsyl001.sbs>
+- 邮箱：<email@fsyl001.sbs> / <3320969905@qq.com>
+- 图标：Lucide `wand-sparkles`（ISC），见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+
+
 ---
 
 ## 1. 界面结构
@@ -72,7 +87,8 @@
 ### LoRA 记事本
 
 - 左侧是 LoRA 列表，右侧是打开的模型详情，类似记事本。
-- 详情包含文件名、触发词、**多个推荐提示词前缀**、**推荐负面提示词**、中英文说明、推荐权重、适用模型、备注。
+- 详情包含文件名、**原始链接（Civitai 等）**、触发词、**多个推荐提示词前缀**、**推荐负面提示词**、中英文说明、推荐权重、适用模型、备注。
+- 原始链接保存后可在详情直接打开，也可复制，方便以后找回模型出处。
 - 触发词显示为 `@dizzy`、`@FSYL001`、`@wins` 这样的标签。
 - **点击触发词 = 复制 `@触发词` 到剪贴板 + 加入英文提示词**（已存在则不重复添加）。
 - 推荐前缀每行一个，可单独「加入」或「全部加入英文开头」；当前 LoRA 面板也可以再次加入，不会自动改写译文。
@@ -301,8 +317,8 @@ npm start
 | 实体 | 关键字段 |
 | --- | --- |
 | `Workspace` | `draftText`、`translationZhText`、`englishText`、`negativeText`、`negativeZhText`、`alignment`、`segments`、`activeLoras`、`params`、`presetId`、`notes` |
-| `Lora` | `name`、`file`、`triggerWords[]`、**`promptPrefixes[]`**（兼容旧 `promptPrefix`）、**`recommendedNegative`**、`descCn/En`、`defaultWeight`、`weightMin/Max`、`modelTypes[]`、`category`、`notes`、`favorite`、`enabled` |
-| `ProductLora` | 作品内 LoRA 快照：`name`、`file`、`weight`、`triggerWords[]`、`promptPrefixes[]`、`promptPrefix`、`recommendedNegative`、`enabled` |
+| `Lora` | `name`、`file`、**`sourceUrl`**、`triggerWords[]`、**`promptPrefixes[]`**（兼容旧 `promptPrefix`）、**`recommendedNegative`**、`descCn/En`、`defaultWeight`、`weightMin/Max`、`modelTypes[]`、`category`、`notes`、`favorite`、`enabled` |
+| `ProductLora` | 作品内 LoRA 快照：`name`、`file`、`sourceUrl`、`weight`、`triggerWords[]`、`promptPrefixes[]`、`promptPrefix`、`recommendedNegative`、`enabled` |
 | `Product` | `positive`、`negative`、`negativeZhText`、`final`、`draftText`、`translationZhText`、`englishText`、`loras`、`params`、`output`、`notes`、`favorite` |
 | `HistoryEntry` | `type`（product/draft/manual）、`name`、`snapshot`、`productId`、`favorite`、`createdAt` |
 | `Settings` | `theme`、`generationUrl`（默认 `http://127.0.0.1:8188/`）、`presetId`、`output`、`translateMode`、`translator`（非密钥镜像）、`dictionary[]`、`workflows[]`、`historyLimit` |
@@ -386,6 +402,8 @@ npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 | 19 | 中文也支持片段加权 | ✅ 中文按词切分，如「一个 / 白发 / 女孩」，点击后写入 `(白发)` |
 | 20 | 输入 @ 自动补全触发词 | ✅ 弹出 LoRA 库 `@dizzy` / `@FSYL001` / `@wins`，支持过滤、键盘选择与插入 |
 | 21 | 175% 缩放侧栏可点击 | ✅ 侧栏取消内部裁切，低高度下随页面滚动，快速翻译/LoRA/输出卡片均可到达 |
+| 22 | LoRA 原始链接 | ✅ 可保存 Civitai 等 URL，详情显示可点击出处、复制链接，并进入成品快照 |
+| 23 | 项目详情 / 开源许可 / 矢量图标 | ✅ 关于页含作者、社交链接、邮箱、许可摘要；Lucide 矢量图标与 ISC 署名 |
 
 > 本机没有真实 OpenAI/DeepL 密钥，这两家只验证了配置保存、缺 Key 报错、密钥不回传等接口行为；翻译质量验证使用 Google 公共接口与模拟服务。
 
@@ -454,6 +472,17 @@ ComfyUI 默认地址是 `http://127.0.0.1:8188/`。请先启动 ComfyUI，或在
 
 ---
 
+## 许可协议
+
+本项目使用 **FS-Prompt Studio Non-Commercial License 1.0**：
+
+- ✅ 允许个人学习、研究、修改、非商业分享与部署。
+- ✅ **必须保留署名**：`FS-Prompt Studio by FSYL001` 以及项目出处链接。
+- ❌ **禁止商用**：不得出售、付费分发、作为付费服务或商业产品的一部分使用。
+- 商业授权请联系 <email@fsyl001.sbs> / <3320969905@qq.com>。
+
+完整条款见 [LICENSE](LICENSE)；公开部署时请保留本协议与署名。
+
 ## 脚本速查
 
 | 命令 / 文件 | 说明 |
@@ -469,4 +498,4 @@ ComfyUI 默认地址是 `http://127.0.0.1:8188/`。请先启动 ComfyUI，或在
 | `npm run docs:screenshots` | 重新生成文档截图（需服务运行） |
 | `npm run typecheck` | 前后端类型检查 |
 
-本项目未附带开源许可证；公开发布或商用前请自行添加合适的许可证。
+© 2026 FSYL001 · FS-Prompt Studio · 非商用需署名。图标来自 Lucide（ISC）。

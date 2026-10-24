@@ -1,0 +1,20 @@
+export const PROJECT = {
+  name: 'FS-Prompt Studio',
+  version: '1.4.0',
+  author: 'FSYL001',
+  tagline: '中文优先的 AI 生图提示词编辑器',
+  github: 'https://github.com/FSYL001/FS-Prompt-Studio',
+  githubProfile: 'https://github.com/FSYL001',
+  bilibili: 'https://space.bilibili.com/450000657',
+  douyin:
+    'https://www.douyin.com/user/MS4wLjABAAAAzWfG071S0Ol0_wF3xT1i0oL5eSpPdiYZZY_gKib9S_M',
+  afdian: 'https://ifdian.net/a/fsyl001',
+  blog: 'https://blog.fsyl001.sbs',
+  emails: ['email@fsyl001.sbs', '3320969905@qq.com'],
+  license: 'FS-Prompt Studio Non-Commercial License 1.0',
+  licenseSummary: '开源可修改与分发，必须保留署名，禁止商用。',
+  licensePath: '/LICENSE.txt',
+  iconName: 'Lucide wand-sparkles',
+  iconLicense: 'ISC',
+  iconUrl: 'https://lucide.dev/icons/wand-sparkles',
+} as const;

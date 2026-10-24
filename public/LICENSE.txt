@@ -1,0 +1,66 @@
+FS-Prompt Studio Non-Commercial License 1.0
+==========================================
+
+Copyright (c) 2026 FSYL001. All rights reserved.
+
+中文摘要：
+FS-Prompt Studio 是开源项目，允许个人学习、研究、修改和非商业分享；
+但必须保留作者署名与项目出处，且未经作者书面许可，禁止任何形式的商业使用。
+
+1. Grant
+   Subject to the terms of this license, you are granted a worldwide,
+   royalty-free, non-exclusive permission to use, reproduce, modify, merge,
+   publish, distribute and sublicense the software and its source code for
+   NON-COMMERCIAL purposes only.
+
+2. Attribution (mandatory)
+   Any use, copy, modification or distribution of the software, in source or
+   binary form, must retain:
+     - the copyright notice above;
+     - this license file in full;
+     - clear attribution to "FS-Prompt Studio by FSYL001";
+     - a link to the project page or the author's blog
+       (https://blog.fsyl001.sbs) in the source, documentation, or visible
+       about/credits screen of a derivative product.
+   You may not remove, obscure or alter the author's name or project name.
+
+3. Non-Commercial restriction
+   "Commercial use" includes, without limitation: selling the software or
+   derivative products; offering it as a paid service; bundling it into a
+   commercial product; using it for paid client work; or using it to generate
+   revenue through advertising, subscriptions, or paid distribution.
+   Commercial use requires prior written permission from the author.
+   Contact: email@fsyl001.sbs / 3320969905@qq.com.
+
+4. Redistribution
+   Redistributions of source code must retain this license and attribution.
+   Modified versions must clearly state that they were changed and may not
+   imply endorsement by the original author.
+   You may not sublicense the software under terms that conflict with this
+   license, and you may not impose additional restrictions on the rights
+   granted here.
+
+5. No trademark rights
+   This license does not grant permission to use the "FS-Prompt Studio" name,
+   logo, or author identity as a trademark, except for the attribution
+   required above or factual references to the original project.
+
+6. No warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE
+   USE OF THE SOFTWARE.
+
+7. Termination
+   Any breach of this license automatically terminates the permissions granted
+   here. Upon termination you must stop using and distributing the software.
+   The author may grant written exceptions or a separate commercial license.
+
+8. Acceptance
+   By using, copying, modifying or distributing the software, you agree to be
+   bound by this license.
+
+SPDX-License-Identifier: LicenseRef-FS-Prompt-Studio-NC-1.0
+Project: https://github.com/FSYL001/FS-Prompt-Studio
+Author: FSYL001

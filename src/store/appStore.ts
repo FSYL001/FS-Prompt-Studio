@@ -1155,6 +1155,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       weight: Math.min(lora.weightMax, Math.max(lora.weightMin, lora.defaultWeight)),
       triggerWords: [...lora.triggerWords],
       promptPrefixes: [...loraPromptPrefixes(lora)],
+      sourceUrl: lora.sourceUrl,
       promptPrefix: lora.promptPrefix,
       recommendedNegative: lora.recommendedNegative,
       enabled: lora.enabled,

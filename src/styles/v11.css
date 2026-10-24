@@ -512,6 +512,63 @@
   min-width: 0;
 }
 
+.lora-source-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 9px;
+  background: var(--accent-soft-2);
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.lora-source-row a {
+  color: var(--accent);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lora-source-row a:hover {
+  text-decoration: underline;
+}
+
+.lora-source-invalid {
+  color: var(--warning);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-lora-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  font-size: 9.5px;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.active-lora-source:hover {
+  text-decoration: underline;
+}
+
+.about-mark .brand-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.loading-mark .brand-icon {
+  width: 24px;
+  height: 24px;
+}
+
 .lora-detail-file code {
   font-size: 11px;
   overflow: hidden;
@@ -783,6 +840,119 @@
   font-size: 10px;
   line-height: 1.5;
   color: var(--muted-2);
+}
+
+/* 关于页项目信息与许可 */
+.project-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px;
+  margin-bottom: 10px;
+}
+
+.project-meta-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.project-meta-grid span {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.project-meta-grid strong,
+.project-meta-grid a {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.project-meta-grid a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-soft-2);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.project-link:hover {
+  background: var(--accent-soft);
+}
+
+.license-card {
+  padding: 10px 11px;
+  margin-bottom: 14px;
+  background: var(--warning-soft);
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, var(--border));
+  border-radius: 8px;
+}
+
+.license-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.license-card p {
+  margin: 5px 0 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.license-card .license-attribution {
+  color: var(--muted);
+}
+
+.license-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 7px;
+}
+
+.license-links a {
+  font-size: 10.5px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.license-links a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .project-meta-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* @ 触发词自动补全 */

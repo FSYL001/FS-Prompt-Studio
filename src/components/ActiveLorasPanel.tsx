@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { Lora, ProductLora } from '../domain/types';
 import { fillLoraTemplate, formatWeight, loraPromptPrefixes } from '../domain/lora';
+
+function externalUrl(raw: string): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 import { modelTypeLabel } from '../domain/presets';
 import { useAppStore } from '../store/appStore';
 import { Icon } from './ui/Icon';
@@ -277,6 +288,16 @@ function ActiveLoraItem({
 
       <div className="lora-token-preview" title="按当前输出设置生成的 LoRA 片段">
         <code>{tokenPreview}</code>
+        {externalUrl(active.sourceUrl ?? '') ? (
+          <a
+            className="active-lora-source"
+            href={externalUrl(active.sourceUrl ?? '') ?? '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="external" size={12} /> 出处
+          </a>
+        ) : null}
         {definition ? null : (
           <button
             type="button"

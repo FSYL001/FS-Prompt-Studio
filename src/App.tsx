@@ -27,7 +27,7 @@ function LoadingScreen() {
     <div className="loading-screen" aria-live="polite">
       <div className="loading-card">
         <span className="loading-mark">
-          <Icon name="wand" size={22} />
+          <img className="brand-icon" src="/logo-mark.svg" alt="" />
         </span>
         <div>
           <div className="loading-title">正在读取本地数据…</div>
@@ -133,7 +133,7 @@ export default function App() {
 
         <div className="footer-note">
           <span>
-            FS-Prompt Studio · v1.3.0 · 数据保存在本地
+            FS-Prompt Studio · v1.4.0 · 数据保存在本地 · © 2026 FSYL001 · 非商用需署名
             {serverConfig ? ` · 翻译：${serverConfig.isMock ? '模拟模式' : serverConfig.label}` : ''}
           </span>
           <button

@@ -274,6 +274,12 @@ kbd {
   box-shadow: 0 4px 14px rgba(106, 92, 214, 0.28);
 }
 
+.brand-icon {
+  width: 21px;
+  height: 21px;
+  display: block;
+}
+
 .brand-text {
   display: flex;
   flex-direction: column;

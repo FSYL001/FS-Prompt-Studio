@@ -26,11 +26,15 @@ await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
 await page.getByRole('dialog').getByRole('button', { name: '添加 LoRA' }).click();
 await page.getByPlaceholder('例如：清新水彩风').fill('水彩风格');
 await page.getByPlaceholder('style_watercolor.safetensors').fill('watercolor_v1.safetensors');
+await page.getByLabel('LoRA 原始链接').fill('https://civitai.com/models/12345');
 await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill('watercolor_style');
-await page.getByRole('textbox', { name: '推荐提示词前缀' }).fill('masterpiece, best quality');
+await page.getByRole('textbox', { name: '推荐提示词前缀' }).fill('masterpiece, best quality\ncinematic lighting');
+await page.getByLabel('推荐负面提示词').fill('lowres, blurry, bad anatomy');
 await page.getByPlaceholder('这个 LoRA 适合什么画面、效果如何。').fill('清透的水彩质感，适合人物插画与日常场景。');
 await page.getByRole('button', { name: '保存 LoRA' }).click();
 await page.getByRole('dialog').locator('.lora-index-item', { hasText: '水彩风格' }).click();
+await page.waitForTimeout(300);
+await page.screenshot({ path: 'docs/screenshots/lora-notebook.png', animations: 'disabled' });
 await page.getByRole('dialog').getByRole('button', { name: '添加到当前作品' }).click();
 await page.getByRole('dialog').getByRole('button', { name: '关闭' }).last().click();
 
@@ -54,6 +58,14 @@ await page.waitForFunction(
 await page.locator('.products-card .btn-primary').click();
 await page.locator('.product-card').first().waitFor();
 await page.waitForTimeout(4200);
+
+// 关于页
+await page.locator('.toolbar-btn', { hasText: '设置' }).click();
+const aboutDialog = page.getByRole('dialog');
+await aboutDialog.getByRole('button', { name: '关于' }).click();
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'docs/screenshots/about.png', animations: 'disabled' });
+await aboutDialog.getByRole('button', { name: '完成' }).click();
 
 const style = `
   html { scroll-behavior: auto !important; }

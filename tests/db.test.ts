@@ -28,6 +28,7 @@ function makeLora(name = 'Watercolor', id = 'lora_test'): Lora {
     file: 'watercolor.safetensors',
     triggerWords: ['watercolor_style'],
     promptPrefixes: ['masterpiece, best quality'],
+    sourceUrl: 'https://civitai.com/models/12345',
     promptPrefix: 'masterpiece, best quality',
     recommendedNegative: 'lowres, blurry',
     descCn: '水彩风格',

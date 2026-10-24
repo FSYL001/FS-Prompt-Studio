@@ -78,7 +78,7 @@ export function TopToolbar() {
       <div className="topbar-inner">
         <a className="brand" href="/" aria-label="FS-Prompt Studio 首页">
           <span className="brand-mark" aria-hidden>
-            <Icon name="wand" size={19} />
+            <img className="brand-icon" src="/logo-mark.svg" alt="" />
           </span>
           <span className="brand-text">
             <span className="brand-name">FS-Prompt Studio</span>

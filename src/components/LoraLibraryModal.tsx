@@ -28,6 +28,17 @@ function triggerLabel(trigger: string): string {
   return trigger.startsWith('@') ? trigger : `@${trigger}`;
 }
 
+function externalUrl(raw: string): string | null {
+  if (!raw.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void }) {
   const saveLora = useAppStore((state) => state.saveLora);
   const deleteLora = useAppStore((state) => state.deleteLora);
@@ -36,6 +47,7 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
 
   const [name, setName] = useState(lora?.name ?? '');
   const [file, setFile] = useState(lora?.file ?? '');
+  const [sourceUrl, setSourceUrl] = useState(lora?.sourceUrl ?? '');
   const [triggerText, setTriggerText] = useState((lora?.triggerWords ?? []).join(', '));
   const [prefixText, setPrefixText] = useState(lora ? loraPromptPrefixes(lora).join('\n') : '');
   const [recommendedNegative, setRecommendedNegative] = useState(lora?.recommendedNegative ?? '');
@@ -76,6 +88,15 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
       toast('请至少选择一个适用模型类型。', 'warning');
       return;
     }
+    if (sourceUrl.trim()) {
+      try {
+        const parsed = new URL(sourceUrl.trim());
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('protocol');
+      } catch {
+        toast('原始链接格式不正确，请填写以 http:// 或 https:// 开头的地址。', 'warning');
+        return;
+      }
+    }
     setSaving(true);
     const now = nowIso();
     const prefixes = prefixText
@@ -87,6 +108,7 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
       id: lora?.id ?? newId('lora'),
       name: name.trim().slice(0, 160),
       file: file.trim().slice(0, 400),
+      sourceUrl: sourceUrl.trim().slice(0, 2000),
       triggerWords: parseTriggers(triggerText),
       promptPrefixes: prefixes,
       promptPrefix: prefixes[0] ?? '',
@@ -139,6 +161,21 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
           />
         </Field>
       </div>
+
+      <Field
+        label="原始链接（Civitai 等）"
+        hint="方便以后找回模型出处，例如 https://civitai.com/models/xxxxx。支持 http/https。"
+      >
+        <input
+          className="input"
+          value={sourceUrl}
+          onChange={(event) => setSourceUrl(event.target.value)}
+          maxLength={2000}
+          placeholder="https://civitai.com/models/..."
+          spellCheck={false}
+          aria-label="LoRA 原始链接"
+        />
+      </Field>
 
       <div className="form-grid form-grid-3">
         <Field label="分类">
@@ -362,6 +399,7 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
           lora.category,
           lora.notes,
           lora.recommendedNegative,
+          lora.sourceUrl,
           ...loraPromptPrefixes(lora),
           ...lora.triggerWords,
         ]
@@ -649,6 +687,37 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
                   <code>{selected.file || '缺少文件名'}</code>
                   {!selected.file ? <span className="lora-file-warning">成品不会生成 LoRA 语法</span> : null}
                 </div>
+
+                {selected.sourceUrl.trim() ? (
+                  <div className="lora-source-row">
+                    <Icon name="external" size={14} />
+                    {externalUrl(selected.sourceUrl) ? (
+                      <a
+                        href={externalUrl(selected.sourceUrl) ?? '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={selected.sourceUrl}
+                      >
+                        {new URL(selected.sourceUrl).host}
+                      </a>
+                    ) : (
+                      <span className="lora-source-invalid">链接格式不正确：{selected.sourceUrl}</span>
+                    )}
+                    <span className="meta-spacer" />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon="copy"
+                      onClick={() => {
+                        void copyText(selected.sourceUrl)
+                          .then(() => toast('原始链接已复制。', 'success'))
+                          .catch(() => toast('复制失败，请手动选择链接。', 'error'));
+                      }}
+                    >
+                      复制链接
+                    </Button>
+                  </div>
+                ) : null}
 
                 <div className="lora-detail-section">
                   <div className="lora-detail-label">

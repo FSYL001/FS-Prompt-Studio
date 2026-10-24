@@ -14,6 +14,7 @@ const lora: ProductLora = {
   weight: 0.75,
   triggerWords: ['style_trigger'],
   promptPrefixes: ['masterpiece, best quality'],
+  sourceUrl: 'https://civitai.com/models/12345',
   promptPrefix: 'masterpiece, best quality',
   recommendedNegative: 'lowres, blurry',
   enabled: true,

@@ -90,6 +90,8 @@ export const ProductLoraSchema = z.object({
   weight: z.number().min(-10).max(10).default(0.8),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
   promptPrefixes: z.array(z.string().max(2000)).max(30).default([]),
+  /** 原始出处，例如 Civitai 模型页。 */
+  sourceUrl: z.string().max(2000).default(''),
   /** 旧字段：兼容 v1.2 的单前缀数据，新数据使用 promptPrefixes。 */
   promptPrefix: z.string().max(2000).default(''),
   recommendedNegative: z.string().max(4000).default(''),
@@ -131,6 +133,8 @@ export const LoraSchema = z.object({
   file: z.string().max(400).default(''),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
   promptPrefixes: z.array(z.string().max(2000)).max(30).default([]),
+  /** 原始出处，例如 Civitai 模型页。 */
+  sourceUrl: z.string().max(2000).default(''),
   /** 旧字段：兼容 v1.2 的单前缀数据，新数据使用 promptPrefixes。 */
   promptPrefix: z.string().max(2000).default(''),
   recommendedNegative: z.string().max(4000).default(''),

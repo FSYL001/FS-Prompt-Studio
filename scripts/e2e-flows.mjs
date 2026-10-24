@@ -31,11 +31,12 @@ async function shot(name) {
   await page.screenshot({ path: `artifacts/${name}.png`, animations: 'disabled' });
 }
 
-async function addLora(name, file, trigger, prefix = '') {
+async function addLora(name, file, trigger, prefix = '', source = '') {
   await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
   await dialog.getByRole('button', { name: '添加 LoRA' }).click();
   await page.getByPlaceholder('例如：清新水彩风').fill(name);
   await page.getByPlaceholder('style_watercolor.safetensors').fill(file);
+  if (source) await page.getByLabel('LoRA 原始链接').fill(source);
   await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill(trigger);
   if (prefix) {
     await page.getByRole('textbox', { name: '推荐提示词前缀' }).fill(prefix);
@@ -86,13 +87,15 @@ try {
   assert(/\([^()]+\)/.test(weightedZh), '中文加权后应出现圆括号');
 
   // 多个 LoRA 与不同权重
-  await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style', 'masterpiece, best quality');
+  await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style', 'masterpiece, best quality', 'https://civitai.com/models/12345');
   await addLora('光影增强', 'lighting_v2.safetensors', 'cinematic_light');
 
   // 推荐提示词前缀：查看并置顶加入英文
   await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
   await dialog.locator('.lora-index-item', { hasText: '水彩风格' }).click();
   assert((await dialog.locator('.lora-prefix').first().innerText()).includes('masterpiece'), 'LoRA 详情应显示推荐前缀');
+  const sourceHref = await dialog.locator('.lora-source-row a').getAttribute('href');
+  assert(sourceHref?.includes('civitai.com/models/12345'), 'LoRA 详情应显示原始链接');
   await dialog.getByRole('button', { name: '全部加入英文开头' }).click();
   await dialog.getByRole('button', { name: '关闭' }).last().click();
   assert(
