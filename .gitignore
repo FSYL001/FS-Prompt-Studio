@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-server/
+coverage/
+.vite/
+*.log
+server/data/
+.DS_Store
+Thumbs.db

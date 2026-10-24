@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f5f2" />
+    <meta
+      name="description"
+      content="Prompt Studio：中文优先的 AI 生图提示词编辑器。中文转英文、双语对照、片段管理、LoRA 管理与历史记录，数据默认保存在本地。"
+    />
+    <title>Prompt Studio · AI 生图提示词编辑器</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236a5cd6'/%3E%3Cpath d='M20 42V22h9a7 7 0 0 1 0 14h-9' fill='none' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='42' cy='38' r='5' fill='white'/%3E%3C/svg%3E" />
+    <script>
+      try {
+        var t = localStorage.getItem('prompt-studio-theme');
+        if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+        else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = 'dark';
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
