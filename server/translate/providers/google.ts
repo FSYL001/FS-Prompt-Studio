@@ -1,8 +1,71 @@
-import { fetchText, describeHttpError, mapWithConcurrency } from './http.js';
-import { TranslationError } from './types.js';
-import type { Direction, ProviderTranslateRequest, TranslationProvider } from './types.js';
+import http from 'node:http';
+import https from 'node:https';
+import { describeHttpError, mapWithConcurrency } from '../http.js';
+import { TranslationError, translationTimeoutError } from '../types.js';
+import type { Direction, ProviderTranslateRequest, TranslationProvider } from '../types.js';
 
 const MAX_CHARS = 1800;
+
+/**
+ * 使用 node:https 而不是全局 fetch 调用 Google 公共接口。
+ * 实测 undici（Node fetch）会被 Google 直接返回 429，而 node:https 正常；
+ * 这里不依赖浏览器，也不把任何密钥放到前端。
+ */
+function getText(
+  url: string,
+  timeoutMs: number,
+  redirectsLeft = 3,
+): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const target = new URL(url);
+    const lib = target.protocol === 'http:' ? http : https;
+    const request = lib.get(
+      target,
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'identity',
+        },
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = response.headers.location;
+        if (status >= 300 && status < 400 && location && redirectsLeft > 0) {
+          response.resume();
+          getText(new URL(location, target).toString(), timeoutMs, redirectsLeft - 1).then(
+            resolve,
+            reject,
+          );
+          return;
+        }
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk: string) => {
+          body += chunk;
+        });
+        response.on('end', () => resolve({ status, body }));
+        response.on('error', reject);
+      },
+    );
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(new Error('__timeout__'));
+    });
+    request.on('error', (error: Error) => {
+      if (error.message === '__timeout__') {
+        reject(translationTimeoutError());
+        return;
+      }
+      reject(
+        new TranslationError(
+          `无法连接翻译服务，请检查网络或代理设置（${error.message}）。`,
+          'NETWORK',
+        ),
+      );
+    });
+  });
+}
 
 function languageCodes(direction: Direction): { source: string; target: string } {
   return direction === 'zh-en'
@@ -35,7 +98,7 @@ async function translateOne(
   url.searchParams.set('dt', 't');
   url.searchParams.set('q', text);
 
-  const { status, body } = await fetchText(url.toString(), { method: 'GET' }, { timeoutMs });
+  const { status, body } = await getText(url.toString(), timeoutMs);
   if (status !== 200) throw describeHttpError(status, body);
 
   let data: unknown;
@@ -64,7 +127,7 @@ export const googleFreeProvider: TranslationProvider = {
   maxChars: MAX_CHARS,
   async translate(request: ProviderTranslateRequest): Promise<string[]> {
     const baseUrl = request.config.baseUrl || 'https://translate.googleapis.com';
-    return mapWithConcurrency(request.texts, 3, (text) =>
+    return mapWithConcurrency(request.texts, 3, (text: string) =>
       translateOne(text, request.direction, baseUrl, request.config.timeoutMs),
     );
   },

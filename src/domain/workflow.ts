@@ -96,13 +96,26 @@ export function patchComfyWorkflow(input: WorkflowPatchInput): WorkflowPatchResu
   const warnings: string[] = [];
   const root = parsed as Record<string, unknown>;
 
+  // SD 的 <lora:...> 文本在 ComfyUI 里只是普通文字，LoRA 必须由 LoraLoader 节点应用。
+  const stripLoraSyntax = (value: string): string => {
+    const stripped = value.replace(/<lora:[^>\n]*>/gi, '').replace(/[ \t]{2,}/g, ' ').trim();
+    if (stripped !== value.trim() && !warnings.some((warning) => warning.includes('<lora:'))) {
+      warnings.push(
+        '提示词文本中的 <lora:...> 已移除，因为 ComfyUI 通过 LoraLoader 节点应用 LoRA。请确认下方 LoRA 节点映射。',
+      );
+    }
+    return stripped;
+  };
+  const positiveText = stripLoraSyntax(input.positive);
+  const negativeText = stripLoraSyntax(input.negative);
+
   const positiveNode = getNode(root, input.mapping.positiveNodeId, '正向提示词');
   if (typeof positiveNode.inputs?.text !== 'string') {
     throw new WorkflowError(
       `正向节点（ID: ${input.mapping.positiveNodeId}）没有 text 输入，可能不是 CLIPTextEncode 节点。`,
     );
   }
-  positiveNode.inputs.text = input.positive;
+  positiveNode.inputs.text = positiveText;
 
   let negativePatched = false;
   if (input.mapping.negativeNodeId.trim()) {
@@ -112,9 +125,9 @@ export function patchComfyWorkflow(input: WorkflowPatchInput): WorkflowPatchResu
         `负向节点（ID: ${input.mapping.negativeNodeId}）没有 text 输入，可能不是 CLIPTextEncode 节点。`,
       );
     }
-    negativeNode.inputs.text = input.negative;
+    negativeNode.inputs.text = negativeText;
     negativePatched = true;
-  } else if (input.negative.trim()) {
+  } else if (negativeText.trim()) {
     warnings.push('未配置负向提示词节点，负向提示词没有写入工作流。');
   }
 

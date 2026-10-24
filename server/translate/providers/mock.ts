@@ -1,5 +1,5 @@
-import { TranslationError } from './types.js';
-import type { ProviderTranslateRequest, TranslationProvider } from './types.js';
+import { TranslationError } from '../types.js';
+import type { ProviderTranslateRequest, TranslationProvider } from '../types.js';
 
 /**
  * 本地模拟翻译。
@@ -86,7 +86,7 @@ export const mockProvider: TranslationProvider = {
   requiresKey: false,
   maxChars: 100000,
   async translate(request: ProviderTranslateRequest): Promise<string[]> {
-    return request.texts.map((text) =>
+    return request.texts.map((text: string) =>
       request.direction === 'zh-en' ? translateZhToEn(text) : translateEnToZh(text),
     );
   },
@@ -94,9 +94,8 @@ export const mockProvider: TranslationProvider = {
     if (!request.texts.length) {
       throw new TranslationError('没有可翻译的内容。', 'EMPTY_INPUT');
     }
-    return this.translate({ ...request, texts: ['一个白发女孩，穿着黑色连衣裙'] }).then(
-      ([value]) => value,
-    );
+    const [sample] = await this.translate({ ...request, texts: ['一个白发女孩，穿着黑色连衣裙'] });
+    return sample;
   },
 };
 

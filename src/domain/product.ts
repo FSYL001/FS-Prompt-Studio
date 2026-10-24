@@ -2,6 +2,7 @@ import { buildLoraTokens, formatWeight } from './lora';
 import { composeFromSegments, countCJK, detectLanguage } from './promptParse';
 import { modelTypeLabel } from './presets';
 import type {
+  Alignment,
   OutputConfig,
   PresetId,
   Product,
@@ -101,14 +102,19 @@ export function assemblePrompts(input: PromptAssemblyInput): PromptAssembly {
   warnings.push(...loraWarnings);
 
   const parts: string[] = [];
-  if (input.output.includeTriggers && triggers.length > 0) {
-    const lower = positiveBase.toLowerCase();
-    const missingTriggers = triggers.filter((t) => !lower.includes(t.toLowerCase()));
-    parts.push(...missingTriggers);
+  // 自定义输出模板自行通过 {triggers} / {loras} 放置这些内容，避免重复。
+  if (!input.output.useCustomTemplate) {
+    if (input.output.includeTriggers && triggers.length > 0) {
+      const lower = positiveBase.toLowerCase();
+      const missingTriggers = triggers.filter((t) => !lower.includes(t.toLowerCase()));
+      parts.push(...missingTriggers);
+    }
+    if (positiveBase) parts.push(positiveBase);
+    // ComfyUI 纯文本模式不输出 <lora:...>，只保留触发词。
+    if (tokens.length > 0) parts.push(...tokens);
+  } else if (positiveBase) {
+    parts.push(positiveBase);
   }
-  if (positiveBase) parts.push(positiveBase);
-  // ComfyUI 纯文本模式不输出 <lora:...>，只保留触发词。
-  if (tokens.length > 0) parts.push(...tokens);
 
   let positive = joinParts(parts, separator);
 
@@ -128,27 +134,20 @@ export function assemblePrompts(input: PromptAssemblyInput): PromptAssembly {
   }
 
   const paramsText = formatParams(input.params);
-  const lorasText = tokens.join(separator);
-  const triggersText = triggers.join(separator);
-  let final: string;
 
-  if (input.output.useCustomTemplate && input.output.customOutputTemplate.trim()) {
-    const template = input.output.customOutputTemplate;
-    if (!template.includes('{positive}')) {
+  if (input.output.useCustomTemplate) {
+    if (!input.output.customOutputTemplate.includes('{positive}')) {
       warnings.push('自定义输出模板缺少 {positive} 占位符，成品可能不包含正向提示词。');
     }
-    final = template
-      .replaceAll('{positive}', positive)
-      .replaceAll('{negative}', negative)
-      .replaceAll('{loras}', lorasText)
-      .replaceAll('{triggers}', triggersText)
-      .replaceAll('{params}', paramsText);
-    final = final.replace(/[ \t]+\n/g, '\n').trimEnd();
-  } else {
-    final = positive;
-    if (negative) final += `\nNegative prompt: ${negative}`;
-    if (input.output.includeParams && paramsText) final += `\n${paramsText}`;
   }
+
+  const final = composeFinalFromProduct({
+    positive,
+    negative,
+    params: input.params,
+    output: input.output,
+    loras: input.activeLoras,
+  });
 
   if (input.output.includeChineseComments) {
     warnings.push('中文注释只会写入 TXT 导出文件，不会混入可直接使用的提示词。');
@@ -157,9 +156,42 @@ export function assemblePrompts(input: PromptAssemblyInput): PromptAssembly {
   return { positive, negative, final, loraTokens: tokens, triggerWords: triggers, paramsText, warnings };
 }
 
+/** 供成品编辑后重新计算完整文本。 */
+export function composeFinalFromProduct(product: {
+  positive: string;
+  negative: string;
+  params: PromptParams;
+  output: OutputConfig;
+  loras: ProductLora[];
+}): string {
+  const paramsText = formatParams(product.params);
+  const lorasText = buildLoraTokens(product.loras, product.output).tokens.join(
+    product.output.separator || ', ',
+  );
+  const triggersText = buildLoraTokens(product.loras, product.output).triggers.join(
+    product.output.separator || ', ',
+  );
+
+  if (product.output.useCustomTemplate && product.output.customOutputTemplate.trim()) {
+    const result = product.output.customOutputTemplate
+      .replaceAll('{positive}', product.positive)
+      .replaceAll('{negative}', product.negative)
+      .replaceAll('{loras}', lorasText)
+      .replaceAll('{triggers}', triggersText)
+      .replaceAll('{params}', paramsText);
+    return result.replace(/[ \t]+\n/g, '\n').trimEnd();
+  }
+
+  let final = product.positive;
+  if (product.negative) final += `\nNegative prompt: ${product.negative}`;
+  if (product.output.includeParams && paramsText) final += `\n${paramsText}`;
+  return final;
+}
+
 export interface CreateProductInput extends PromptAssemblyInput {
   name?: string;
   assembly?: PromptAssembly;
+  alignment?: Alignment | null;
   id?: string;
   now?: string;
 }
@@ -177,7 +209,7 @@ export function createProduct(input: CreateProductInput): Product {
     draftText: input.draftText,
     englishText: input.englishText,
     negativeText: input.negativeText,
-    alignment: null,
+    alignment: input.alignment ?? null,
     segments: input.segments.map((s) => ({ ...s })),
     loras: input.activeLoras.map((l) => ({ ...l, triggerWords: [...l.triggerWords] })),
     params: { ...input.params },

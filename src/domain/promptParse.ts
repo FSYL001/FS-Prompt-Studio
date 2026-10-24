@@ -102,9 +102,9 @@ export function tokenizePrompt(text: string, options: TokenizeOptions = {}): Pro
       continue;
     }
     if (ch === ' ' || ch === '\t') {
+      // 顶层空白（分隔符后 / 片段开头）不单独保留；英文短语内部的空格会包含在 content token 中。
       let j = i + 1;
       while (j < text.length && (text[j] === ' ' || text[j] === '\t')) j++;
-      push('space', i, j);
       i = j;
       continue;
     }
@@ -141,11 +141,12 @@ export function tokenizePrompt(text: string, options: TokenizeOptions = {}): Pro
       }
     }
 
-    // 消费一段普通内容，遇到分隔符 / 空白 / 语法标记时停下
+    // 消费一段普通内容，遇到分隔符 / 换行 / 语法标记时停下。
+    // 注意：空格会被包含在内容里，这样英文短语和完整句子不会被拆成单个单词。
     let j = i;
     while (j < text.length) {
       const c = text[j];
-      if (c === '\n' || c === '\r' || c === ' ' || c === '\t' || c === '<') break;
+      if (c === '\n' || c === '\r' || c === '<') break;
       if (c === '"' || c === '“' || c === '”') break;
       if (depth === 0 && !quote) {
         if (SOFT_DELIMS.has(c)) break;
@@ -155,7 +156,7 @@ export function tokenizePrompt(text: string, options: TokenizeOptions = {}): Pro
       else if ((c === ')' || c === ']' || c === '}') && depth > 0) depth--;
       j++;
     }
-    if (j === i) j = i + 1; // 理论上不会发生，防御性处理
+    if (j === i) j = i + 1; // 防御性处理
     push('content', i, j);
     i = j;
   }
@@ -221,6 +222,12 @@ function trimTrailingSpaces(value: string): string {
   return value.replace(/[ \t]+$/, '');
 }
 
+function isSentenceLike(value: string): boolean {
+  const cjkCount = (value.match(/[\u3400-\u4dbf\u4e00-\u9fff]/g) ?? []).length;
+  const wordCount = value.trim().split(/\s+/).filter(Boolean).length;
+  return cjkCount >= 12 || wordCount >= 5 || value.length >= 24;
+}
+
 export interface ComposeTranslationResult {
   text: string;
   pairs: AlignmentPair[];
@@ -258,6 +265,13 @@ export function composeTranslatedText(
       pendingSpace = false;
       continue;
     }
+    if (token.kind === 'protected') {
+      // LoRA 标签等语法不参与对照，也不送翻译，只按原样保留。
+      if (out.length > 0 && !/[\s(（]$/.test(out)) out += ' ';
+      out += token.value;
+      pendingSpace = false;
+      continue;
+    }
 
     const raw = translations.get(index);
     const translated = raw === undefined ? token.value : raw;
@@ -276,21 +290,27 @@ export function composeTranslatedText(
     out += value;
     const targetEnd = out.length;
 
-    if (LETTER_OR_NUMBER_RE.test(value) && LETTER_OR_NUMBER_RE.test(token.value)) {
-      const isSentence =
-        token.value.length >= 24 || /[，。！？；,.!?;]/.test(token.value.slice(1));
+    const trimmedSource = token.value.trim();
+    const leadingSpaces = token.value.length - token.value.trimStart().length;
+    const sourceStart = token.start + leadingSpaces;
+    const sourceEnd = sourceStart + trimmedSource.length;
+
+    if (LETTER_OR_NUMBER_RE.test(value) && LETTER_OR_NUMBER_RE.test(trimmedSource)) {
       pairs.push({
-        source: token.value.trim(),
+        source: trimmedSource,
         target: value,
-        sourceStart: token.start,
-        sourceEnd: token.end,
+        sourceStart,
+        sourceEnd,
         targetStart,
         targetEnd,
-        granularity: isSentence ? 'sentence' : 'segment',
-        unchanged: raw === undefined ? true : raw.trim() === token.value.trim(),
+        granularity: isSentenceLike(trimmedSource) ? 'sentence' : 'segment',
+        unchanged: raw === undefined ? true : raw.trim() === trimmedSource,
         uncertain: raw === undefined ? true : undefined,
       });
     }
+
+    // 保留原文中紧跟在内容后面的空格（例如 "1girl <lora:...>"）。
+    if (/[ \t]+$/.test(token.value)) pendingSpace = true;
   }
 
   return { text: trimTrailingSpaces(out), pairs };
@@ -312,9 +332,7 @@ export function splitPromptSegments(text: string): string[] {
   };
 
   for (const token of tokens) {
-    if (token.kind === 'newline') {
-      flush();
-    } else if (token.kind === 'delim') {
+    if (token.kind === 'newline' || token.kind === 'delim') {
       flush();
     } else if (token.kind === 'space') {
       if (buffer.length > 0 && !buffer.endsWith(' ')) buffer += ' ';
@@ -358,7 +376,8 @@ export function composeFromSegments(
     .map((s) => {
       const text = segmentEnglishText(s).trim();
       if (!text) return '';
-      return options.applyWeights === false ? text : wrapWeight(text, s.weight);
+      const allowWeights = options.applyWeights !== false && options.output.includeWeights !== false;
+      return allowWeights ? wrapWeight(text, s.weight) : text;
     })
     .filter(Boolean);
 

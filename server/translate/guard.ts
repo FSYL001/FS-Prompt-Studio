@@ -70,6 +70,11 @@ export function restorePromptSyntax(translated: string, tokens: string[]): strin
     );
   }
 
+  // 翻译服务可能在占位符前插入空格，例如 (white hair :1.2)，这里恢复标准权重写法。
+  output = output
+    .replace(/\s+(?=:\s*-?\d+(?:\.\d+)?\s*\))/g, '')
+    .replace(/(:\s*-?\d+(?:\.\d+)?)\s+\)/g, '$1)');
+
   return output;
 }
 
