@@ -17,6 +17,11 @@ describe('片段加权工具', () => {
     ]);
   });
 
+  it('中文按词切分为可点击单元', () => {
+    expect(unitsOf('一个白发女孩', 'word')).toEqual(['一个', '白发', '女孩']);
+    expect(unitsOf('穿着黑色连衣裙', 'word')).toEqual(['穿着', '黑色', '连衣裙']);
+  });
+
   it('按单句拆分，逗号分隔的短句各为一块', () => {
     expect(unitsOf('long hair, blue eyes. smiling', 'sentence')).toEqual([
       'long hair',

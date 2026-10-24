@@ -89,7 +89,10 @@ export const ProductLoraSchema = z.object({
   file: z.string().max(400).default(''),
   weight: z.number().min(-10).max(10).default(0.8),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
+  promptPrefixes: z.array(z.string().max(2000)).max(30).default([]),
+  /** 旧字段：兼容 v1.2 的单前缀数据，新数据使用 promptPrefixes。 */
   promptPrefix: z.string().max(2000).default(''),
+  recommendedNegative: z.string().max(4000).default(''),
   enabled: z.boolean().default(true),
 });
 export type ProductLora = z.infer<typeof ProductLoraSchema>;
@@ -127,7 +130,10 @@ export const LoraSchema = z.object({
   name: z.string().min(1).max(160),
   file: z.string().max(400).default(''),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
+  promptPrefixes: z.array(z.string().max(2000)).max(30).default([]),
+  /** 旧字段：兼容 v1.2 的单前缀数据，新数据使用 promptPrefixes。 */
   promptPrefix: z.string().max(2000).default(''),
+  recommendedNegative: z.string().max(4000).default(''),
   descCn: z.string().max(4000).default(''),
   descEn: z.string().max(4000).default(''),
   defaultWeight: z.number().min(-10).max(10).default(0.8),
@@ -196,6 +202,7 @@ export const WorkspaceSchema = z.object({
   translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
+  negativeZhText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
   segments: z.array(PromptSegmentSchema).max(500).default([]),
   segmentsMode: z.boolean().default(false),
@@ -212,6 +219,7 @@ export const WorkspaceSnapshotSchema = z.object({
   translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
+  negativeZhText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
   segments: z.array(PromptSegmentSchema).max(500).default([]),
   activeLoras: z.array(ProductLoraSchema).max(100).default([]),
@@ -231,6 +239,7 @@ export const ProductSchema = z.object({
   translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
+  negativeZhText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
   segments: z.array(PromptSegmentSchema).max(500).default([]),
   loras: z.array(ProductLoraSchema).max(100).default([]),

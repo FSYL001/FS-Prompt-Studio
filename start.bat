@@ -5,7 +5,7 @@ cd /d "%~dp0"
 
 where node >nul 2>nul
 if errorlevel 1 (
-  echo [Prompt Studio] Node.js was not found.
+  echo [FS-Prompt Studio] Node.js was not found.
   echo Please install Node.js 20 or newer from https://nodejs.org/
   pause
   exit /b 1
@@ -14,17 +14,17 @@ if errorlevel 1 (
 netstat -ano | findstr ":8787" | findstr "LISTENING" >nul
 if not errorlevel 1 (
   echo.
-  echo [Prompt Studio] Service already running on port 8787.
+  echo [FS-Prompt Studio] Service already running on port 8787.
   echo Opening http://127.0.0.1:5173/
   start "" "http://127.0.0.1:5173/"
   exit /b 0
 )
 
 if not exist "node_modules" (
-  echo [Prompt Studio] Installing dependencies. This may take a few minutes...
+  echo [FS-Prompt Studio] Installing dependencies. This may take a few minutes...
   call npm install
   if errorlevel 1 (
-    echo [Prompt Studio] npm install failed. Check the network and try again.
+    echo [FS-Prompt Studio] npm install failed. Check the network and try again.
     pause
     exit /b 1
   )
@@ -32,7 +32,7 @@ if not exist "node_modules" (
 
 echo.
 echo ============================================================
-echo   Prompt Studio
+echo   FS-Prompt Studio
 echo ------------------------------------------------------------
 echo   Web UI : http://127.0.0.1:5173
 echo   API    : http://127.0.0.1:8787

@@ -54,6 +54,7 @@ export function HistoryModal({ onClose }: { onClose: () => void }) {
         entry.snapshot.draftText,
         entry.snapshot.englishText,
         entry.snapshot.negativeText,
+        entry.snapshot.negativeZhText,
         entry.snapshot.notes,
       ]
         .join(' ')
@@ -366,6 +367,10 @@ export function HistoryModal({ onClose }: { onClose: () => void }) {
                       <div>
                         <span className="detail-label">负向提示词</span>
                         <pre className="detail-pre">{snapshot.negativeText || '（无）'}</pre>
+                      </div>
+                      <div>
+                        <span className="detail-label">负面中文</span>
+                        <pre className="detail-pre">{snapshot.negativeZhText || '（无）'}</pre>
                       </div>
                       <div>
                         <span className="detail-label">参数</span>

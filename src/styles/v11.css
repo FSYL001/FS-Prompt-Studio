@@ -618,11 +618,11 @@
   margin: 0;
 }
 
-/* 负面提示词：始终可见，一键复制英文翻译 */
+/* 负面提示词：中文 + 英文双框 */
 .negative-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
   margin-top: 14px;
   padding: 12px 13px;
   border: 1px solid var(--border);
@@ -649,13 +649,82 @@
   color: var(--muted);
 }
 
-.negative-panel .negative-textarea {
-  margin-top: 0;
-  min-height: 92px;
+.negative-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.negative-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.negative-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.negative-box-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.negative-box-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.negative-box .negative-textarea {
+  margin: 0;
+  min-height: 105px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 0;
+  background: var(--surface);
+  font-size: 12.5px;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.negative-box .negative-textarea:focus {
+  box-shadow: inset 0 0 0 2px var(--accent-soft);
+}
+
+.negative-box-foot {
+  padding: 4px 9px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 10px;
+  color: var(--muted);
 }
 
 .negative-panel .negative-actions {
   margin-top: 0;
+  padding-top: 2px;
+}
+
+.product-negative-zh {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  word-break: break-word;
 }
 
 /* 右侧小翻译 */
@@ -716,7 +785,104 @@
   color: var(--muted-2);
 }
 
-/* LoRA 推荐前缀 */
+/* @ 触发词自动补全 */
+.at-mention-popover {
+  position: fixed;
+  z-index: 3000;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  box-shadow: 0 14px 38px rgba(20, 18, 15, 0.18);
+}
+
+.at-mention-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px 7px;
+  font-size: 10px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.at-mention-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.at-mention-keys kbd {
+  padding: 0 3px;
+  font-size: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.at-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 8px;
+  text-align: left;
+  color: var(--text-2);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+}
+
+.at-mention-item:hover,
+.at-mention-item.is-active {
+  background: var(--accent-soft);
+}
+
+.at-mention-trigger {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.at-mention-lora {
+  margin-left: auto;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.at-mention-empty {
+  padding: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* LoRA 推荐前缀 / 推荐负面 */
+.lora-prefix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lora-prefix-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lora-prefix-row .lora-prefix {
+  flex: 1;
+  min-width: 0;
+}
+
 .lora-prefix {
   margin: 0;
   padding: 7px 9px;
@@ -741,7 +907,7 @@
 .active-lora-prefix {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   margin-top: 6px;
   padding: 6px 8px;
   background: var(--surface-2);
@@ -758,12 +924,39 @@
   color: var(--muted);
 }
 
-.active-lora-prefix code {
+.active-lora-prefix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.active-lora-prefix-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.active-lora-prefix-row code {
+  flex: 1;
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1.5;
   color: var(--text-2);
   word-break: break-word;
+}
+
+.active-lora-negative {
+  border-color: color-mix(in srgb, var(--danger) 25%, var(--border));
+}
+
+/* 低高度 / 175% 缩放时，侧栏不再内部滚动，避免卡片下半部分点不到 */
+@media (max-height: 900px) {
+  .side-column {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 /* 响应式：翻译双框与 LoRA 记事本 */
@@ -795,6 +988,14 @@
   .translation-textarea {
     min-height: 150px;
     font-size: 13.5px;
+  }
+
+  .negative-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lora-prefix-row {
+    align-items: flex-start;
   }
 
   .translation-box-foot .footnote-note {

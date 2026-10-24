@@ -37,6 +37,52 @@ function isSeparator(char: string, granularity: WeightGranularity): boolean {
   return granularity === 'word' ? WORD_SEPARATORS.has(char) : SENTENCE_SEPARATORS.has(char);
 }
 
+const CJK_PATTERN = /[\u3400-\u4dbf\u4e00-\u9fff]/;
+
+/**
+ * 中文没有空格，按空格切只会得到整句。
+ * 用 Intl.Segmenter 做轻量分词，并把单字与后面的字合并，得到「白发 / 女孩 / 连衣裙」这类可点击单元。
+ */
+function splitChineseWords(text: string): Array<{ text: string; start: number; end: number }> {
+  if (typeof Intl === 'undefined' || typeof Intl.Segmenter !== 'function') {
+    return [{ text, start: 0, end: text.length }];
+  }
+  const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+  const parts: Array<{ text: string; start: number; end: number }> = [];
+  for (const part of segmenter.segment(text)) {
+    const value = part.segment.trim();
+    if (!value || !/[\p{L}\p{N}]/u.test(value)) continue;
+    const leading = part.segment.length - part.segment.trimStart().length;
+    parts.push({
+      text: value,
+      start: part.index + leading,
+      end: part.index + leading + value.length,
+    });
+  }
+
+  const merged: Array<{ text: string; start: number; end: number }> = [];
+  for (let i = 0; i < parts.length; i++) {
+    const current = parts[i];
+    const next = parts[i + 1];
+    if (
+      current.text.length === 1 &&
+      next &&
+      CJK_PATTERN.test(current.text) &&
+      CJK_PATTERN.test(next.text)
+    ) {
+      merged.push({
+        text: current.text + next.text,
+        start: current.start,
+        end: next.end,
+      });
+      i++;
+    } else {
+      merged.push(current);
+    }
+  }
+  return merged.length > 1 ? merged : [{ text, start: 0, end: text.length }];
+}
+
 /**
  * 把提示词切成可点击的单元。
  * - word：空白、逗号、句号等都会切分；括号/方括号内部的空格不会被切开。
@@ -88,12 +134,21 @@ export function parseWeightUnits(text: string, granularity: WeightGranularity): 
     const trimmedStart = raw.length - raw.trimStart().length;
     const trimmed = raw.trim();
     if (trimmed) {
-      units.push({
-        type: 'unit',
-        text: trimmed,
-        start: i + trimmedStart,
-        end: i + trimmedStart + trimmed.length,
-      });
+      const canSplitChinese =
+        granularity === 'word' &&
+        CJK_PATTERN.test(trimmed) &&
+        !/^[([{（【"“]/.test(trimmed) &&
+        !/[^\p{L}\p{N}\s]/u.test(trimmed);
+      const parts = canSplitChinese ? splitChineseWords(trimmed) : [{ text: trimmed, start: 0, end: trimmed.length }];
+      for (const part of parts) {
+        if (!part.text) continue;
+        units.push({
+          type: 'unit',
+          text: part.text,
+          start: i + trimmedStart + part.start,
+          end: i + trimmedStart + part.end,
+        });
+      }
     }
     i = j;
   }

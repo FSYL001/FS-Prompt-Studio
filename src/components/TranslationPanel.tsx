@@ -5,6 +5,7 @@ import { copyText } from '../domain/id';
 import { translateSingleText } from '../services/translation';
 import { useAppStore } from '../store/appStore';
 import { AlignedPairs } from './AlignedPairs';
+import { AtMentionTextarea } from './AtMentionTextarea';
 import { WeightedPromptEditor } from './WeightedPromptEditor';
 import { Icon } from './ui/Icon';
 import {
@@ -17,13 +18,14 @@ import {
   Toggle,
 } from './ui/primitives';
 
-type EnglishMode = 'text' | 'segments';
+type BoxMode = 'text' | 'segments';
 
 export function TranslationPanel() {
   const draftText = useAppStore((state) => state.workspace.draftText);
   const translationZhText = useAppStore((state) => state.workspace.translationZhText);
   const englishText = useAppStore((state) => state.workspace.englishText);
   const negativeText = useAppStore((state) => state.workspace.negativeText);
+  const negativeZhText = useAppStore((state) => state.workspace.negativeZhText);
   const alignment = useAppStore((state) => state.workspace.alignment);
   const activeLoras = useAppStore((state) => state.workspace.activeLoras);
   const loras = useAppStore((state) => state.loras);
@@ -33,6 +35,7 @@ export function TranslationPanel() {
   const setTranslationZhText = useAppStore((state) => state.setTranslationZhText);
   const setEnglishText = useAppStore((state) => state.setEnglishText);
   const setNegativeText = useAppStore((state) => state.setNegativeText);
+  const setNegativeZhText = useAppStore((state) => state.setNegativeZhText);
   const clearTranslationZh = useAppStore((state) => state.clearTranslationZh);
   const clearEnglish = useAppStore((state) => state.clearEnglish);
   const clearNegative = useAppStore((state) => state.clearNegative);
@@ -53,7 +56,8 @@ export function TranslationPanel() {
 
   const zhRef = useRef<HTMLTextAreaElement>(null);
   const enRef = useRef<HTMLTextAreaElement>(null);
-  const [englishMode, setEnglishMode] = useState<EnglishMode>('text');
+  const [zhMode, setZhMode] = useState<BoxMode>('text');
+  const [englishMode, setEnglishMode] = useState<BoxMode>('text');
   const [negativeBusy, setNegativeBusy] = useState(false);
 
   const zhLang = detectLanguage(translationZhText);
@@ -94,41 +98,71 @@ export function TranslationPanel() {
     });
   };
 
-  const handleTranslateNegative = async () => {
-    if (!negativeText.trim() || negativeBusy) return;
-    setNegativeBusy(true);
-    try {
-      const result = await translateSingleText({
-        text: negativeText,
-        mode: settings.translateMode,
-        dictionary: settings.dictionary,
-        protectedTerms: collectLoraTerms(loras, activeLoras),
-      });
-      setNegativeText(result.text);
-      toast(
-        result.mock ? '负向提示词已翻译（本地模拟翻译，不是真实翻译）。' : '负向提示词已翻译。',
-        result.mock ? 'warning' : 'success',
-      );
-    } catch (error) {
-      toast(`负向提示词翻译失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
-    } finally {
-      setNegativeBusy(false);
+  const translateNegative = async (direction: 'zh-en' | 'en-zh') => {
+    if (negativeBusy) return;
+    const source = direction === 'zh-en' ? negativeZhText : negativeText;
+    const target = direction === 'zh-en' ? negativeText : negativeZhText;
+    if (!source.trim()) {
+      toast(direction === 'zh-en' ? '负面中文框是空的。' : '负面英文框是空的。', 'info');
+      return;
     }
+    const apply = async () => {
+      setNegativeBusy(true);
+      try {
+        const result = await translateSingleText({
+          text: source,
+          mode: settings.translateMode,
+          dictionary: settings.dictionary,
+          protectedTerms: collectLoraTerms(loras, activeLoras),
+        });
+        if (direction === 'zh-en') setNegativeText(result.text);
+        else setNegativeZhText(result.text);
+        toast(
+          result.mock
+            ? '负面提示词已翻译（本地模拟翻译，不是真实翻译）。'
+            : direction === 'zh-en'
+              ? '负面中文已翻译为英文。'
+              : '负面英文已翻译为中文。',
+          result.mock ? 'warning' : 'success',
+        );
+      } catch (error) {
+        toast(`负面提示词翻译失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+      } finally {
+        setNegativeBusy(false);
+      }
+    };
+    if (target.trim() && target !== source) {
+      confirmAction({
+        title: '替换现有负面内容？',
+        message:
+          direction === 'zh-en'
+            ? '当前负面英文会被新译文覆盖，可以用撤销恢复。'
+            : '当前负面中文会被新译文覆盖，可以用撤销恢复。',
+        confirmLabel: '翻译并替换',
+        onConfirm: () => void apply(),
+      });
+      return;
+    }
+    await apply();
   };
 
-  const copyTranslationToNegative = () => {
-    if (!englishText.trim()) {
-      toast('英文翻译还是空的，没有内容可以复制。', 'info');
+  const copyPositiveToNegative = () => {
+    if (!englishText.trim() && !translationZhText.trim()) {
+      toast('正向翻译还是空的，没有内容可以复制。', 'info');
       return;
     }
     const apply = () => {
+      setNegativeZhText(translationZhText);
       setNegativeText(englishText);
-      toast('已把英文翻译复制到负面提示词，成品会一起保存。', 'success');
+      toast('已把正向中文 / 英文各复制一份到负面提示词，成品会一起保存。', 'success');
     };
-    if (negativeText.trim() && negativeText !== englishText) {
+    if (
+      (negativeText.trim() && negativeText !== englishText) ||
+      (negativeZhText.trim() && negativeZhText !== translationZhText)
+    ) {
       confirmAction({
         title: '替换现有负面提示词？',
-        message: '当前负面提示词会被英文翻译覆盖，此操作可以用撤销恢复。',
+        message: '当前负面中文 / 英文会被正向翻译覆盖，此操作可以用撤销恢复。',
         confirmLabel: '复制并替换',
         onConfirm: apply,
       });
@@ -188,6 +222,16 @@ export function TranslationPanel() {
               ) : null}
             </div>
             <div className="translation-box-actions">
+              <Segmented
+                size="sm"
+                ariaLabel="中文编辑模式"
+                value={zhMode}
+                options={[
+                  { value: 'text', label: '文本' },
+                  { value: 'segments', label: '片段' },
+                ]}
+                onChange={(value) => setZhMode(value as BoxMode)}
+              />
               {draftText.trim() ? (
                 <Button
                   size="sm"
@@ -214,15 +258,23 @@ export function TranslationPanel() {
               />
             </div>
           </header>
-          <textarea
-            ref={zhRef}
-            className="translation-textarea"
-            value={translationZhText}
-            onChange={(event) => setTranslationZhText(event.target.value)}
-            placeholder="翻译原文（中文）。可以手动输入，也可以点击「使用草稿」把上方草稿填进来。"
-            spellCheck={false}
-            aria-label="中文翻译"
-          />
+          {zhMode === 'text' ? (
+            <AtMentionTextarea
+              textareaRef={zhRef}
+              className="translation-textarea"
+              value={translationZhText}
+              onChange={(value) => setTranslationZhText(value)}
+              placeholder="翻译原文（中文）。可以手动输入，也可以点击「使用草稿」把上方草稿填进来。"
+              spellCheck={false}
+              aria-label="中文翻译"
+            />
+          ) : (
+            <WeightedPromptEditor
+              value={translationZhText}
+              onChange={setTranslationZhText}
+              ariaLabel="中文翻译片段加权编辑"
+            />
+          )}
           <footer className="translation-box-foot">
             <span>{translationZhText.length} 个字符</span>
             <span className="meta-spacer" />
@@ -257,7 +309,7 @@ export function TranslationPanel() {
                   { value: 'text', label: '文本' },
                   { value: 'segments', label: '片段' },
                 ]}
-                onChange={(value) => setEnglishMode(value as EnglishMode)}
+                onChange={(value) => setEnglishMode(value as BoxMode)}
               />
               <IconButton
                 icon="copy"
@@ -276,11 +328,11 @@ export function TranslationPanel() {
           </header>
 
           {englishMode === 'text' ? (
-            <textarea
-              ref={enRef}
+            <AtMentionTextarea
+              textareaRef={enRef}
               className="translation-textarea translation-textarea-en"
               value={englishText}
-              onChange={(event) => setEnglishText(event.target.value)}
+              onChange={(value) => setEnglishText(value)}
               placeholder="英文提示词。可以直接编辑，也可以先在左侧中文框写内容，再用上方「翻译」生成。"
               spellCheck={false}
               aria-label="英文提示词"
@@ -318,6 +370,7 @@ export function TranslationPanel() {
           enText={englishText}
           zhRef={zhRef}
           enRef={enRef}
+          zhSelectable={zhMode === 'text'}
           enSelectable={englishMode === 'text'}
         />
       ) : null}
@@ -327,6 +380,7 @@ export function TranslationPanel() {
           <div className="negative-title">
             <Icon name="minus" size={15} />
             负面提示词
+            <Badge tone="neutral">中 / 英</Badge>
             <Badge tone="neutral">随成品保存</Badge>
           </div>
           <div className="negative-buttons">
@@ -334,66 +388,140 @@ export function TranslationPanel() {
               size="sm"
               variant="soft"
               icon="copy"
-              disabled={!englishText.trim()}
-              onClick={copyTranslationToNegative}
-              title="把英文翻译复制一份作为负面提示词"
+              disabled={!englishText.trim() && !translationZhText.trim()}
+              onClick={copyPositiveToNegative}
+              title="把正向的中文和英文各复制一份作为负面提示词"
             >
-              复制英文翻译
+              复制正向翻译
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon="copy"
-              disabled={!negativeText.trim()}
-              onClick={() => void handleCopy(negativeText, '负面提示词')}
-            >
-              复制
-            </Button>
-          </div>
-        </header>
-        <p className="negative-hint">
-          一键把英文翻译复制一份作为负面提示词的起点，再按需修改。保存成品、历史快照和备份时都会包含负面提示词。
-        </p>
-        <textarea
-          className="editor-textarea negative-textarea"
-          value={negativeText}
-          onChange={(event) => setNegativeText(event.target.value)}
-          placeholder="lowres, bad anatomy, bad hands, extra fingers, watermark, text"
-          spellCheck={false}
-          aria-label="负面提示词"
-        />
-        <div className="negative-actions">
-          <span className="meta-text">
-            {negativeText.length > 0 ? `${negativeText.length} 个字符` : '通常是英文，例如：lowres, blurry'}
-          </span>
-          <div className="negative-buttons">
-            {hasCJK(negativeText) ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                icon="translate"
-                loading={negativeBusy}
-                onClick={() => void handleTranslateNegative()}
-              >
-                翻译为英文
-              </Button>
-            ) : null}
             <Button
               size="sm"
               variant="ghost"
               icon="trash"
-              disabled={!negativeText}
+              disabled={!negativeText && !negativeZhText}
               onClick={() =>
                 confirmAction({
-                  title: '清空负面提示词？',
-                  message: '此操作可以用撤销恢复。',
-                  confirmLabel: '清空',
+                  title: '清空全部负面提示词？',
+                  message: '负面中文和负面英文都会清空，可以用撤销恢复。',
+                  confirmLabel: '清空全部',
                   danger: true,
                   onConfirm: () => clearNegative(),
                 })
               }
             >
-              清空
+              清空全部
+            </Button>
+          </div>
+        </header>
+        <p className="negative-hint">
+          负面提示词也有中文 / 英文两个框。可一键复制正向翻译，再按需修改；成品、历史快照和备份都会包含负面提示词。
+        </p>
+
+        <div className="negative-grid">
+          <div className="negative-box">
+            <header className="negative-box-head">
+              <span className="negative-box-title">
+                <span className="lang-mark lang-zh">中</span>
+                中文
+              </span>
+              <span className="negative-box-actions">
+                <IconButton
+                  icon="copy"
+                  label="复制负面中文"
+                  size="sm"
+                  disabled={!negativeZhText}
+                  onClick={() => void handleCopy(negativeZhText, '负面中文')}
+                />
+                <IconButton
+                  icon="trash"
+                  label="清空负面中文"
+                  size="sm"
+                  disabled={!negativeZhText}
+                  onClick={() =>
+                    confirmAction({
+                      title: '清空负面中文？',
+                      message: '负面英文不会受影响。',
+                      confirmLabel: '清空中文',
+                      onConfirm: () => setNegativeZhText(''),
+                    })
+                  }
+                />
+              </span>
+            </header>
+            <AtMentionTextarea
+              className="editor-textarea negative-textarea"
+              value={negativeZhText}
+              onChange={(value) => setNegativeZhText(value)}
+              placeholder="负面提示词中文，例如：低清晰度、模糊、多余手指、水印"
+              spellCheck={false}
+              aria-label="负面中文"
+            />
+            <div className="negative-box-foot">{negativeZhText.length} 个字符</div>
+          </div>
+
+          <div className="negative-box">
+            <header className="negative-box-head">
+              <span className="negative-box-title">
+                <span className="lang-mark lang-en">EN</span>
+                英文
+              </span>
+              <span className="negative-box-actions">
+                <IconButton
+                  icon="copy"
+                  label="复制负面英文"
+                  size="sm"
+                  disabled={!negativeText}
+                  onClick={() => void handleCopy(negativeText, '负面英文')}
+                />
+                <IconButton
+                  icon="trash"
+                  label="清空负面英文"
+                  size="sm"
+                  disabled={!negativeText}
+                  onClick={() =>
+                    confirmAction({
+                      title: '清空负面英文？',
+                      message: '负面中文不会受影响。',
+                      confirmLabel: '清空英文',
+                      onConfirm: () => setNegativeText(''),
+                    })
+                  }
+                />
+              </span>
+            </header>
+            <AtMentionTextarea
+              className="editor-textarea negative-textarea"
+              value={negativeText}
+              onChange={(value) => setNegativeText(value)}
+              placeholder="lowres, bad anatomy, bad hands, extra fingers, watermark, text"
+              spellCheck={false}
+              aria-label="负面英文"
+            />
+            <div className="negative-box-foot">{negativeText.length} 个字符</div>
+          </div>
+        </div>
+
+        <div className="negative-actions">
+          <span className="meta-text">中文只作参考，英文负面会进入成品。</span>
+          <div className="negative-buttons">
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="translate"
+              disabled={!negativeZhText.trim() || negativeBusy}
+              loading={negativeBusy}
+              onClick={() => void translateNegative('zh-en')}
+            >
+              中→英
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="translate"
+              disabled={!negativeText.trim() || negativeBusy}
+              onClick={() => void translateNegative('en-zh')}
+            >
+              英→中
             </Button>
           </div>
         </div>

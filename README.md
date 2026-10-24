@@ -1,6 +1,6 @@
-# Prompt Studio · AI 生图提示词编辑器
+# FS-Prompt Studio · AI 生图提示词编辑器
 
-面向中文用户的 AI 生图提示词工作台：草稿独立记录想法，翻译区用「中文 / 英文」两个框精确对照，片段模式点单词/单句加权降权，LoRA 用记事本方式管理并复制 `@触发词`，成品与历史全部保存在本地。
+面向中文用户的 AI 生图提示词工作台：草稿独立记录想法，翻译区用「中文 / 英文」两个框精确对照，中文和英文都支持片段模式点单词/单句加权降权；LoRA 用记事本管理多个推荐前缀、推荐负面和 `@触发词`，输入 `@` 自动补全触发词；成品与历史全部保存在本地。
 
 ![编辑器主界面](docs/screenshots/editor.png)
 
@@ -11,6 +11,14 @@
 | LoRA 记事本 | 移动端 |
 | --- | --- |
 | ![LoRA 记事本](docs/screenshots/lora-notebook.png) | ![移动端](docs/screenshots/mobile.png) |
+
+| 中文片段加权 | 输入 @ 自动补全触发词 |
+| --- | --- |
+| ![中文片段加权](docs/screenshots/chinese-weight.png) | ![输入 @ 自动补全](docs/screenshots/at-mention.png) |
+
+| 负面提示词中英双框 |
+| --- |
+| ![负面提示词中英双框](docs/screenshots/negative-bilingual.png) |
 
 ---
 
@@ -41,7 +49,7 @@
 
 ### 片段模式：点单词 / 单句加权
 
-英文框切到「片段」后，文字会以可点击的方框显示：
+**中文框和英文框都支持片段模式。** 切到「片段」后，文字会以可点击的方框显示：
 
 1. 选择粒度：**按单词** 或 **按单句**。
 2. 打开「加权」或「降权」开关。
@@ -64,19 +72,28 @@
 ### LoRA 记事本
 
 - 左侧是 LoRA 列表，右侧是打开的模型详情，类似记事本。
-- 详情包含文件名、触发词、**推荐提示词前缀**、中英文说明、推荐权重、适用模型、备注。
-- 触发词显示为 `@dizzy`、`@watercolor_style` 这样的标签。
+- 详情包含文件名、触发词、**多个推荐提示词前缀**、**推荐负面提示词**、中英文说明、推荐权重、适用模型、备注。
+- 触发词显示为 `@dizzy`、`@FSYL001`、`@wins` 这样的标签。
 - **点击触发词 = 复制 `@触发词` 到剪贴板 + 加入英文提示词**（已存在则不重复添加）。
-- 推荐前缀（例如 `masterpiece, best quality`）可在详情里一键「加入英文开头」，当前 LoRA 面板也可以再次加入；不会自动改写译文。
+- 推荐前缀每行一个，可单独「加入」或「全部加入英文开头」；当前 LoRA 面板也可以再次加入，不会自动改写译文。
+- 推荐负面提示词可一键加入负面英文框。
 - 支持「复制全部」、添加到当前作品、调整权重、拖动排序、收藏、启用/停用、编辑、删除。
 - 文件名缺失时明确提示，并拒绝生成错误的 LoRA 语法。
 
+### 输入 @ 自动补全触发词
+
+在草稿、中文 / 英文翻译框、负面框或小翻译输入框中输入 `@`：
+
+- 自动弹出 LoRA 库里的全部触发词，继续输入 `@di`、`@FS` 会过滤。
+- `↑` / `↓` 选择，`Enter` / `Tab` 插入，`Esc` 关闭。
+- 插入 `@dizzy`、`@FSYL001`、`@wins` 原词，不经过翻译。
+
 ### 负面提示词
 
-- 翻译卡片底部始终显示「负面提示词」，不再藏在折叠项里。
-- 点「复制英文翻译」会把英文框内容原样复制一份到负面提示词，再手动修改。
-- 支持复制、清空、把中文负面提示词翻译成英文。
-- 负面提示词会随成品、历史快照和完整备份一起保存，并在成品卡片里单独显示。
+- 负面提示词现在是**中文框 + 英文框**，和正向翻译一样可以双向翻译。
+- 点「复制正向翻译」会把正向中文、英文各复制一份到负面两个框，再手动修改。
+- 支持复制、单独清空、中→英 / 英→中翻译和「清空全部」。
+- 负面英文会随成品、历史快照和完整备份一起保存；负面中文也会保存并在成品卡片中显示。
 
 ### 右侧小翻译
 
@@ -89,7 +106,7 @@
 ### 成品与历史
 
 - 生成成品不会清空草稿或翻译框。
-- 成品保存当时的正向/负向、LoRA（含推荐前缀）、参数、中文草稿、中文翻译、英文、片段快照。
+- 成品保存当时的正向/负向、LoRA（含多个推荐前缀/推荐负面）、参数、中文草稿、中文翻译、英文、片段快照。
 - 支持编辑、收藏、重命名、载入编辑器、删除、复制、导出 TXT/JSON。
 - 历史自动记录成品生成、手动保存、新建/恢复前的自动备份。
 - 支持搜索、排序、收藏筛选、查看、对比、恢复、批量删除、导出。
@@ -189,8 +206,8 @@ npm start
 4. **对照**：打开「对照」，点击中文/英文单元格定位。
 5. **修英文**：直接编辑英文框。
 6. **加权**：英文框切到「片段」，选择按词/按句，打开加权/降权，点击文字。
-7. **LoRA**：打开 LoRA 记事本，查看模型信息，点击 `@触发词` 复制并加入英文，再调整权重；需要时可把推荐前缀放到英文开头。
-8. **负面提示词**：点「复制英文翻译」复制一份再修改，成品会一起保存。
+7. **LoRA**：打开 LoRA 记事本，查看模型信息，点击 `@触发词` 复制并加入英文，再调整权重；可把多个推荐前缀放到英文开头，也可把推荐负面加入负面英文。
+8. **负面提示词**：点「复制正向翻译」复制中英两份再修改，成品会一起保存。
 9. **小翻译**：右栏小翻译可随时输入文字翻译并复制，不影响当前提示词。
 10. **生成成品**：选择预设与参数后生成；草稿、翻译和负面提示词都不变。
 11. **导出 / 前往生图**：复制或导出提示词，点顶部「前往生图」打开 ComfyUI。
@@ -242,7 +259,7 @@ npm start
 │  │  ├─ LoraLibraryModal.tsx  LoRA 记事本
 │  │  └─ 其它编辑器/历史/设置/成品组件
 │  └─ styles/global.css + v11.css
-├─ tests/                      76 项 Vitest
+├─ tests/                      77 项 Vitest
 ├─ scripts/                    E2E 与截图脚本
 └─ docs/screenshots/
 ```
@@ -283,15 +300,15 @@ npm start
 
 | 实体 | 关键字段 |
 | --- | --- |
-| `Workspace` | `draftText`、`translationZhText`、`englishText`、`negativeText`、`alignment`、`segments`、`activeLoras`、`params`、`presetId`、`notes` |
-| `Lora` | `name`、`file`、`triggerWords[]`、**`promptPrefix`**、`descCn/En`、`defaultWeight`、`weightMin/Max`、`modelTypes[]`、`category`、`notes`、`favorite`、`enabled` |
-| `ProductLora` | 作品内 LoRA 快照：`name`、`file`、`weight`、`triggerWords[]`、`promptPrefix`、`enabled` |
-| `Product` | `positive`、`negative`、`final`、`draftText`、`translationZhText`、`englishText`、`loras`、`params`、`output`、`notes`、`favorite` |
+| `Workspace` | `draftText`、`translationZhText`、`englishText`、`negativeText`、`negativeZhText`、`alignment`、`segments`、`activeLoras`、`params`、`presetId`、`notes` |
+| `Lora` | `name`、`file`、`triggerWords[]`、**`promptPrefixes[]`**（兼容旧 `promptPrefix`）、**`recommendedNegative`**、`descCn/En`、`defaultWeight`、`weightMin/Max`、`modelTypes[]`、`category`、`notes`、`favorite`、`enabled` |
+| `ProductLora` | 作品内 LoRA 快照：`name`、`file`、`weight`、`triggerWords[]`、`promptPrefixes[]`、`promptPrefix`、`recommendedNegative`、`enabled` |
+| `Product` | `positive`、`negative`、`negativeZhText`、`final`、`draftText`、`translationZhText`、`englishText`、`loras`、`params`、`output`、`notes`、`favorite` |
 | `HistoryEntry` | `type`（product/draft/manual）、`name`、`snapshot`、`productId`、`favorite`、`createdAt` |
 | `Settings` | `theme`、`generationUrl`（默认 `http://127.0.0.1:8188/`）、`presetId`、`output`、`translateMode`、`translator`（非密钥镜像）、`dictionary[]`、`workflows[]`、`historyLimit` |
 | `Backup` | `app`、`formatVersion=1`、`exportedAt`、`data{settings,loras,products,history,workspace}` |
 
-旧版本数据没有 `translationZhText` 时，会用 `draftText` 回填中文翻译框，避免内容看起来丢失。
+旧版本数据没有 `translationZhText` 时，会用 `draftText` 回填中文翻译框，避免内容看起来丢失；没有 `negativeZhText` / `promptPrefixes` 时分别默认空字符串与空数组，旧 `promptPrefix` 仍可读取。
 
 ### 翻译 API
 
@@ -328,7 +345,7 @@ npm start
 npm test
 ```
 
-结果：**9 个测试文件、76 项全部通过**。
+结果：**9 个测试文件、77 项全部通过**。
 
 覆盖：语言识别、分词/分段、括号与 LoRA 标签保护、标点映射、对齐区间、长句整句对照、片段权重括号、加权统计、成品组装、LoRA 语法、TXT 导出、翻译编排/缓存/跳过/失败、ComfyUI 节点改写、版本 diff、IndexedDB、备份导入、Express API（密钥不回传）。
 
@@ -338,7 +355,7 @@ npm test
 npx playwright install chromium
 npm run dev
 npm run e2e:smoke     # 翻译 → 对照 → LoRA → 成品 → 刷新持久化 → 历史 → 设置 → 生图跳转 → 深色 → 移动端
-npm run e2e:flows     # 加权片段 → 两个 LoRA → @触发词 → 成品编辑 → 历史对比/恢复 → ComfyUI → 备份导出/导入 → 删除
+npm run e2e:flows     # 中英片段加权 → 两个 LoRA/多前缀 → @ 补全 → 负面双框 → 成品编辑 → 历史对比/恢复 → ComfyUI → 备份导出/导入 → 删除
 npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 ```
 
@@ -363,9 +380,12 @@ npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 | 13 | 切换方向不无提示覆盖 | ✅ 方向弹窗 + 替换确认 + 恢复入口 |
 | 14 | ComfyUI 不产生虚假兼容性 | ✅ 拒绝界面格式、校验节点、移除文本 LoRA 语法 |
 | 15 | 手机端可用 | ✅ 390×844 无横向溢出；双框堆叠、工具栏换行 |
-| 16 | 负面提示词复制翻译并随成品保存 | ✅ 点「复制英文翻译」→ 负面提示词包含完整英文；成品卡片显示负向 |
-| 17 | LoRA 推荐提示词前缀 | ✅ 可填写、详情显示、一键放到英文开头；成品快照保留 |
+| 16 | 负面提示词中英双框并随成品保存 | ✅ 「复制正向翻译」同时填充负面中文/英文；成品卡片显示负向，历史与 TXT 也保存 |
+| 17 | LoRA 多个推荐前缀 + 推荐负面 | ✅ 可填多行前缀、全部加入英文开头；推荐负面可加入负面英文；成品快照保留 |
 | 18 | 右侧小翻译与 @触发词保护 | ✅ 输入 `@dizzy 一个白发女孩` 返回 `@dizzy A girl with white hair` |
+| 19 | 中文也支持片段加权 | ✅ 中文按词切分，如「一个 / 白发 / 女孩」，点击后写入 `(白发)` |
+| 20 | 输入 @ 自动补全触发词 | ✅ 弹出 LoRA 库 `@dizzy` / `@FSYL001` / `@wins`，支持过滤、键盘选择与插入 |
+| 21 | 175% 缩放侧栏可点击 | ✅ 侧栏取消内部裁切，低高度下随页面滚动，快速翻译/LoRA/输出卡片均可到达 |
 
 > 本机没有真实 OpenAI/DeepL 密钥，这两家只验证了配置保存、缺 Key 报错、密钥不回传等接口行为；翻译质量验证使用 Google 公共接口与模拟服务。
 
@@ -376,23 +396,24 @@ npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 1. Google 公共接口非官方，可能限流或不可用。
 2. OpenAI / DeepL 未做真实密钥联调。
 3. 加权按钮只在文字外增加/移除一层 `()` / `[]`，不自动写数字权重；需要数值时可直接编辑英文文本。
-4. 中文「按单词」没有中文分词，中文内容会按标点/空格成为整块；需要细分时用「按单句」或直接编辑。
+4. 中文片段使用 `Intl.Segmenter` 做轻量分词，不是词典级精确分词；不同浏览器切出的词可能略有差异，可切「按单句」或直接编辑。
 5. 对照粒度来自请求片段，不是词级语义对齐。
 6. LoRA `@触发词` 是普通文本，不是所有前端的特殊语法；点击时复制到剪贴板，浏览器可能因权限拒绝复制，但加入提示词仍会执行。翻译会原样保留 `@触发词`；推荐前缀需要手动加入，不会自动改写译文。
-7. 负面提示词的「复制英文翻译」是原样复制，不会自动追加 `lowres` 等通用负向词。
-8. ComfyUI 只支持 API 格式模板，节点 ID 需手动配置；模型文件名需与本地环境一致。
-9. 没有账号与云同步；数据绑定单个浏览器。
-10. 移动端 HTML5 拖拽可能失效，LoRA/片段排序提供按钮或列表选择。
-11. 服务端无鉴权，默认只监听本机。
-12. Firefox / Safari 未做 E2E 验证。
-13. 成品编辑不会反向同步当前编辑器。
+7. 负面提示词的「复制正向翻译」是原样复制，不会自动追加 `lowres` 等通用负向词。
+8. @ 自动补全只在文本框模式生效；片段模式下请先切回「文本」，或直接编辑后切片段。
+9. ComfyUI 只支持 API 格式模板，节点 ID 需手动配置；模型文件名需与本地环境一致。
+10. 没有账号与云同步；数据绑定单个浏览器。
+11. 移动端 HTML5 拖拽可能失效，LoRA/片段排序提供按钮或列表选择。
+12. 服务端无鉴权，默认只监听本机。
+13. Firefox / Safari 未做 E2E 验证。
+14. 成品编辑不会反向同步当前编辑器。
 
 ---
 
 ## 10. 后续可扩展
 
 - 给片段加权增加数字权重（`(word:1.2)`）与撤销栈。
-- 中文分词/词组级片段。
+- 中文分词词典/自定义词组。
 - 更多翻译商、术语表、离线模型。
 - ComfyUI 节点自动探测与可视化映射。
 - 账号与可选云同步、加密备份。
@@ -441,7 +462,7 @@ ComfyUI 默认地址是 `http://127.0.0.1:8188/`。请先启动 ComfyUI，或在
 | `npm run dev` | 同时启动前端与 API |
 | `npm run build` | 类型检查 + 构建前端 + 编译服务端 |
 | `npm start` | 生产模式（默认 8787） |
-| `npm test` | 76 项 Vitest |
+| `npm test` | 77 项 Vitest |
 | `npm run e2e:smoke` | 主流程浏览器验收 |
 | `npm run e2e:flows` | 扩展流程验收 |
 | `npm run e2e:failure` | 翻译失败保护验收 |

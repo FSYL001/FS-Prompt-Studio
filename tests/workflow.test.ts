@@ -13,7 +13,9 @@ const lora: ProductLora = {
   file: 'style.safetensors',
   weight: 0.75,
   triggerWords: ['style_trigger'],
+  promptPrefixes: ['masterpiece, best quality'],
   promptPrefix: 'masterpiece, best quality',
+  recommendedNegative: 'lowres, blurry',
   enabled: true,
 };
 

@@ -71,6 +71,16 @@ export function buildLoraTokens(loras: ProductLora[], output: OutputConfig): {
   return { tokens, triggers, warnings };
 }
 
+/** 读取多个推荐前缀；兼容旧版单前缀字段。 */
+export function loraPromptPrefixes(
+  lora: Pick<Lora, 'promptPrefixes' | 'promptPrefix'> | Pick<ProductLora, 'promptPrefixes' | 'promptPrefix'>,
+): string[] {
+  if (Array.isArray(lora.promptPrefixes) && lora.promptPrefixes.length > 0) {
+    return lora.promptPrefixes.map((item) => item.trim()).filter(Boolean);
+  }
+  return lora.promptPrefix?.trim() ? [lora.promptPrefix.trim()] : [];
+}
+
 export function productLoraFromDefinition(lora: Lora, weight?: number): ProductLora {
   return {
     loraId: lora.id,
@@ -78,7 +88,9 @@ export function productLoraFromDefinition(lora: Lora, weight?: number): ProductL
     file: lora.file,
     weight: weight ?? clampWeight(lora.defaultWeight, lora),
     triggerWords: [...lora.triggerWords],
+    promptPrefixes: [...loraPromptPrefixes(lora)],
     promptPrefix: lora.promptPrefix,
+    recommendedNegative: lora.recommendedNegative,
     enabled: lora.enabled,
   };
 }

@@ -25,6 +25,7 @@ import { hasCJK, splitPromptSegments } from '../domain/promptParse';
 import { composeFromSegments } from '../domain/promptParse';
 import { assemblePrompts, createProduct } from '../domain/product';
 import { applyPreset } from '../domain/presets';
+import { loraPromptPrefixes } from '../domain/lora';
 import {
   applyBackup,
   buildBackup,
@@ -112,6 +113,7 @@ export interface EditorSnapshot {
   translationZhText: string;
   englishText: string;
   negativeText: string;
+  negativeZhText: string;
   alignment: Alignment | null;
   segments: PromptSegment[];
   segmentsMode: boolean;
@@ -177,6 +179,7 @@ export interface AppState {
   setTranslationZhText: (text: string) => void;
   setEnglishText: (text: string) => void;
   setNegativeText: (text: string) => void;
+  setNegativeZhText: (text: string) => void;
   setNotes: (text: string) => void;
   setParams: (patch: Partial<PromptParams>) => void;
   clearDraft: () => void;
@@ -255,6 +258,7 @@ function snapshotEditor(workspace: Workspace): EditorSnapshot {
     translationZhText: workspace.translationZhText,
     englishText: workspace.englishText,
     negativeText: workspace.negativeText,
+    negativeZhText: workspace.negativeZhText,
     alignment: workspace.alignment,
     segments: workspace.segments.map((segment) => ({ ...segment })),
     segmentsMode: workspace.segmentsMode,
@@ -277,6 +281,7 @@ function snapshotWorkspace(workspace: Workspace): WorkspaceSnapshot {
     translationZhText: workspace.translationZhText,
     englishText: workspace.englishText,
     negativeText: workspace.negativeText,
+    negativeZhText: workspace.negativeZhText,
     alignment: workspace.alignment,
     segments: workspace.segments.map((segment) => ({ ...segment })),
     activeLoras: workspace.activeLoras.map((lora) => ({ ...lora, triggerWords: [...lora.triggerWords] })),
@@ -293,6 +298,7 @@ function workspaceFromSnapshot(snapshot: WorkspaceSnapshot, current: Workspace):
     translationZhText: snapshot.translationZhText,
     englishText: snapshot.englishText,
     negativeText: snapshot.negativeText,
+    negativeZhText: snapshot.negativeZhText,
     alignment: snapshot.alignment,
     segments: snapshot.segments.map((segment) => ({ ...segment })),
     activeLoras: snapshot.activeLoras.map((lora) => ({ ...lora, triggerWords: [...lora.triggerWords] })),
@@ -548,6 +554,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
       ...withUndo(state),
       workspace: { ...state.workspace, negativeText: text },
     })),
+  setNegativeZhText: (text) =>
+    set((state) => ({
+      ...withUndo(state),
+      workspace: { ...state.workspace, negativeZhText: text },
+    })),
   setNotes: (text) => set((state) => ({ workspace: { ...state.workspace, notes: text } })),
   setParams: (patch) =>
     set((state) => ({ workspace: { ...state.workspace, params: { ...state.workspace.params, ...patch } } })),
@@ -574,7 +585,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
       preTranslateBackup: null,
     })),
   clearNegative: () =>
-    set((state) => ({ ...withUndo(state, true), workspace: { ...state.workspace, negativeText: '' } })),
+    set((state) => ({
+      ...withUndo(state, true),
+      workspace: { ...state.workspace, negativeText: '', negativeZhText: '' },
+    })),
   useDraftForTranslation: () => {
     const state = get();
     if (!state.workspace.draftText.trim()) {
@@ -1140,7 +1154,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
       file: lora.file,
       weight: Math.min(lora.weightMax, Math.max(lora.weightMin, lora.defaultWeight)),
       triggerWords: [...lora.triggerWords],
+      promptPrefixes: [...loraPromptPrefixes(lora)],
       promptPrefix: lora.promptPrefix,
+      recommendedNegative: lora.recommendedNegative,
       enabled: lora.enabled,
     };
     set({
@@ -1231,6 +1247,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         draftText: workspace.draftText,
         translationZhText: workspace.translationZhText,
         negativeText: workspace.negativeText,
+        negativeZhText: workspace.negativeZhText,
         segments: workspace.segments,
         activeLoras: workspace.activeLoras,
         params: workspace.params,
@@ -1328,6 +1345,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       translationZhText: product.translationZhText || product.draftText,
       englishText: product.englishText,
       negativeText: product.negativeText,
+      negativeZhText: product.negativeZhText,
       alignment: product.alignment,
       segments: product.segments.map((segment) => ({ ...segment })),
       segmentsMode: false,

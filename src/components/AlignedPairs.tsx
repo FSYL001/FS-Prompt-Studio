@@ -17,6 +17,7 @@ export function AlignedPairs({
   enText,
   zhRef,
   enRef,
+  zhSelectable = true,
   enSelectable = true,
 }: {
   alignment: Alignment | null;
@@ -24,6 +25,7 @@ export function AlignedPairs({
   enText: string;
   zhRef: RefObject<HTMLTextAreaElement | null>;
   enRef: RefObject<HTMLTextAreaElement | null>;
+  zhSelectable?: boolean;
   enSelectable?: boolean;
 }) {
   const [active, setActive] = useState<{ index: number; side: Side } | null>(null);
@@ -99,8 +101,14 @@ export function AlignedPairs({
                   setActive({ index, side: 'zh' });
                   selectPair(pair, 'zh');
                 }}
-                disabled={!fresh}
-                title={fresh ? '在中文框选中这一段' : '重新翻译后可定位'}
+                disabled={!fresh || !zhSelectable}
+                title={
+                  !zhSelectable
+                    ? '中文框当前处于片段模式，切回文本模式后可定位'
+                    : fresh
+                      ? '在中文框选中这一段'
+                      : '重新翻译后可定位'
+                }
               >
                 <span className="aligned-lang">中文</span>
                 <span className="aligned-text">{zhValue || '（空）'}</span>

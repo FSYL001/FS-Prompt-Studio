@@ -193,6 +193,7 @@ export interface CreateProductInput extends PromptAssemblyInput {
   assembly?: PromptAssembly;
   alignment?: Alignment | null;
   translationZhText?: string;
+  negativeZhText?: string;
   id?: string;
   now?: string;
 }
@@ -211,6 +212,7 @@ export function createProduct(input: CreateProductInput): Product {
     translationZhText: input.translationZhText ?? '',
     englishText: input.englishText,
     negativeText: input.negativeText,
+    negativeZhText: input.negativeZhText ?? '',
     alignment: input.alignment ?? null,
     segments: input.segments.map((s) => ({ ...s })),
     loras: input.activeLoras.map((l) => ({ ...l, triggerWords: [...l.triggerWords] })),
@@ -266,6 +268,11 @@ export function buildTxtExport(product: Product, includeChineseComments = true):
       lines.push(product.translationZhText.trim());
       lines.push('');
     }
+    if (product.negativeZhText.trim()) {
+      lines.push('--- 中文负向提示词（仅供参考） ---');
+      lines.push(product.negativeZhText.trim());
+      lines.push('');
+    }
     if (product.segments.length > 0) {
       lines.push('--- 片段 ---');
       for (const seg of product.segments) {
@@ -279,7 +286,7 @@ export function buildTxtExport(product: Product, includeChineseComments = true):
   lines.push('--- 完整成品 ---');
   lines.push(product.final);
   lines.push('');
-  lines.push('# 由 Prompt Studio 生成；数据默认仅保存在你的浏览器本地。');
+  lines.push('# 由 FS-Prompt Studio 生成；数据默认仅保存在你的浏览器本地。');
   return lines.join('\n');
 }
 

@@ -110,6 +110,9 @@ function ProductCard({ product }: { product: Product }) {
           <div className="product-prompt-block is-negative">
             <span className="prompt-label">负向</span>
             <p className="prompt-text">{product.negative}</p>
+            {product.negativeZhText ? (
+              <p className="product-negative-zh">中文负面：{product.negativeZhText}</p>
+            ) : null}
           </div>
         ) : null}
       </div>

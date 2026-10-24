@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Lora, ModelType } from '../domain/types';
 import { MODEL_TYPES } from '../domain/types';
-import { formatWeight } from '../domain/lora';
+import { formatWeight, loraPromptPrefixes } from '../domain/lora';
 import { copyText, newId, nowIso } from '../domain/id';
 import { modelTypeLabel } from '../domain/presets';
 import { useAppStore } from '../store/appStore';
@@ -37,7 +37,8 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
   const [name, setName] = useState(lora?.name ?? '');
   const [file, setFile] = useState(lora?.file ?? '');
   const [triggerText, setTriggerText] = useState((lora?.triggerWords ?? []).join(', '));
-  const [promptPrefix, setPromptPrefix] = useState(lora?.promptPrefix ?? '');
+  const [prefixText, setPrefixText] = useState(lora ? loraPromptPrefixes(lora).join('\n') : '');
+  const [recommendedNegative, setRecommendedNegative] = useState(lora?.recommendedNegative ?? '');
   const [descCn, setDescCn] = useState(lora?.descCn ?? '');
   const [descEn, setDescEn] = useState(lora?.descEn ?? '');
   const [defaultWeight, setDefaultWeight] = useState(lora?.defaultWeight ?? 0.8);
@@ -77,12 +78,19 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
     }
     setSaving(true);
     const now = nowIso();
+    const prefixes = prefixText
+      .split(/\r?\n/)
+      .map((item) => item.trim().slice(0, 2000))
+      .filter(Boolean)
+      .slice(0, 30);
     const next: Lora = {
       id: lora?.id ?? newId('lora'),
       name: name.trim().slice(0, 160),
       file: file.trim().slice(0, 400),
       triggerWords: parseTriggers(triggerText),
-      promptPrefix: promptPrefix.slice(0, 2000),
+      promptPrefixes: prefixes,
+      promptPrefix: prefixes[0] ?? '',
+      recommendedNegative: recommendedNegative.slice(0, 4000),
       descCn: descCn.slice(0, 4000),
       descEn: descEn.slice(0, 4000),
       defaultWeight: Math.round(defaultWeight * 100) / 100,
@@ -194,17 +202,34 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
       </Field>
 
       <Field
-        label="推荐提示词前缀（可选）"
-        hint="这个 LoRA 常用的质量词或风格前缀，例如 masterpiece, best quality。不会自动改写译文，可在详情里一键加入英文提示词。"
+        label="推荐提示词前缀（每行一个）"
+        hint="可以填多个质量词或风格前缀，每行一个，例如 masterpiece, best quality。不会自动改写译文。"
       >
         <textarea
           className="input textarea"
-          value={promptPrefix}
-          onChange={(event) => setPromptPrefix(event.target.value)}
-          rows={2}
-          maxLength={2000}
-          placeholder="masterpiece, best quality, highly detailed"
+          value={prefixText}
+          onChange={(event) => setPrefixText(event.target.value)}
+          rows={3}
+          maxLength={20000}
+          placeholder={'masterpiece, best quality, highly detailed\ncinematic lighting, film grain'}
           spellCheck={false}
+          aria-label="推荐提示词前缀"
+        />
+      </Field>
+
+      <Field
+        label="推荐负面提示词"
+        hint="这个 LoRA 常用或建议避开的负面词，可一键加入负面英文框。"
+      >
+        <textarea
+          className="input textarea"
+          value={recommendedNegative}
+          onChange={(event) => setRecommendedNegative(event.target.value)}
+          rows={2}
+          maxLength={4000}
+          placeholder="lowres, blurry, bad anatomy, watermark"
+          spellCheck={false}
+          aria-label="推荐负面提示词"
         />
       </Field>
 
@@ -300,9 +325,11 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
   const loras = useAppStore((state) => state.loras);
   const activeLoras = useAppStore((state) => state.workspace.activeLoras);
   const englishText = useAppStore((state) => state.workspace.englishText);
+  const negativeText = useAppStore((state) => state.workspace.negativeText);
+  const setEnglishText = useAppStore((state) => state.setEnglishText);
+  const setNegativeText = useAppStore((state) => state.setNegativeText);
   const addActiveLora = useAppStore((state) => state.addActiveLora);
   const removeActiveLora = useAppStore((state) => state.removeActiveLora);
-  const setEnglishText = useAppStore((state) => state.setEnglishText);
   const toggleFavorite = useAppStore((state) => state.toggleLoraFavorite);
   const setLoraEnabled = useAppStore((state) => state.setLoraEnabled);
   const deleteLora = useAppStore((state) => state.deleteLora);
@@ -334,7 +361,8 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
           lora.descEn,
           lora.category,
           lora.notes,
-          lora.promptPrefix,
+          lora.recommendedNegative,
+          ...loraPromptPrefixes(lora),
           ...lora.triggerWords,
         ]
           .join(' ')
@@ -359,6 +387,7 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
 
   const selected = loras.find((lora) => lora.id === selectedId) ?? null;
   const selectedInUse = selected ? activeLoras.some((active) => active.loraId === selected.id) : false;
+  const selectedPrefixes = selected ? loraPromptPrefixes(selected) : [];
 
   const handleTrigger = async (trigger: string) => {
     const token = triggerLabel(trigger);
@@ -384,25 +413,48 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handlePrefix = async (prefix: string) => {
-    const clean = prefix.trim();
-    if (!clean) return;
+  const handlePrefixes = async (prefixes: string[]) => {
+    const clean = prefixes.map((prefix) => prefix.trim()).filter(Boolean);
+    if (clean.length === 0) return;
+    const combined = clean.join(', ');
     const base = englishText.trim();
-    const already = base.toLowerCase().startsWith(clean.toLowerCase());
+    const already = base.toLowerCase().startsWith(combined.toLowerCase());
     if (!already) {
-      const separator = /[,，.。]$/.test(clean) ? ' ' : ', ';
-      setEnglishText(`${clean}${separator}${base}`.trim());
+      const separator = /[,，.。]$/.test(combined) ? ' ' : ', ';
+      setEnglishText(base ? `${combined}${separator}${base}`.trim() : combined);
     }
     try {
-      await copyText(clean);
+      await copyText(combined);
       toast(
         already
-          ? '英文提示词已以这个前缀开头，前缀已复制。'
-          : '已把推荐前缀放到英文提示词开头，并复制到剪贴板。',
+          ? '英文提示词已以这些前缀开头，前缀已复制。'
+          : `已把 ${clean.length} 个推荐前缀放到英文提示词开头，并复制到剪贴板。`,
         'success',
       );
     } catch {
-      toast(already ? '前缀已在英文开头。' : '已把推荐前缀放到英文提示词开头。', already ? 'info' : 'warning');
+      toast(
+        already
+          ? '前缀已在英文开头。'
+          : `已把 ${clean.length} 个推荐前缀放到英文提示词开头。`,
+        already ? 'info' : 'warning',
+      );
+    }
+  };
+
+  const handleRecommendedNegative = async (text: string) => {
+    const clean = text.trim();
+    if (!clean) return;
+    const base = negativeText.trim();
+    const already = base.toLowerCase().includes(clean.toLowerCase());
+    if (!already) {
+      const separator = base && !/[,，.。]$/.test(base) ? ', ' : base ? ' ' : '';
+      setNegativeText(`${base}${separator}${clean}`);
+    }
+    try {
+      await copyText(clean);
+      toast(already ? '负面英文中已有这段推荐词，已复制。' : '已加入负面英文，并复制到剪贴板。', 'success');
+    } catch {
+      toast(already ? '负面英文中已有这段推荐词。' : '已加入负面英文。', already ? 'info' : 'warning');
     }
   };
 
@@ -633,28 +685,78 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
                 <div className="lora-detail-section">
                   <div className="lora-detail-label">
                     <span>推荐提示词前缀</span>
-                    <span className="lora-detail-hint">可置顶加入英文提示词</span>
+                    <span className="lora-detail-hint">可填多个，每行一个；可全部放到英文开头</span>
                   </div>
-                  {selected.promptPrefix.trim() ? (
+                  {selectedPrefixes.length > 0 ? (
                     <>
-                      <pre className="lora-prefix">{selected.promptPrefix}</pre>
+                      <div className="lora-prefix-list">
+                        {selectedPrefixes.map((prefix) => (
+                          <div className="lora-prefix-row" key={prefix}>
+                            <pre className="lora-prefix">{prefix}</pre>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              icon="plus"
+                              onClick={() => void handlePrefixes([prefix])}
+                            >
+                              加入
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                       <div className="lora-prefix-actions">
                         <Button
                           size="sm"
                           variant="secondary"
                           icon="plus"
-                          onClick={() => void handlePrefix(selected.promptPrefix)}
+                          onClick={() => void handlePrefixes(selectedPrefixes)}
                         >
-                          加入英文开头
+                          全部加入英文开头
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
                           icon="copy"
                           onClick={() => {
-                            void copyText(selected.promptPrefix)
-                              .then(() => toast('推荐前缀已复制。', 'success'))
+                            void copyText(selectedPrefixes.join('\n'))
+                              .then(() => toast('全部推荐前缀已复制。', 'success'))
                               .catch(() => toast('复制失败，请手动选择前缀。', 'error'));
+                          }}
+                        >
+                          复制全部
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="lora-detail-empty">还没有推荐前缀。点击「编辑信息」填写，每行一个。</p>
+                  )}
+                </div>
+
+                <div className="lora-detail-section">
+                  <div className="lora-detail-label">
+                    <span>推荐负面提示词</span>
+                    <span className="lora-detail-hint">可加入负面英文框</span>
+                  </div>
+                  {selected.recommendedNegative.trim() ? (
+                    <>
+                      <pre className="lora-prefix">{selected.recommendedNegative}</pre>
+                      <div className="lora-prefix-actions">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon="minus"
+                          onClick={() => void handleRecommendedNegative(selected.recommendedNegative)}
+                        >
+                          加入负面英文
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon="copy"
+                          onClick={() => {
+                            void copyText(selected.recommendedNegative)
+                              .then(() => toast('推荐负面提示词已复制。', 'success'))
+                              .catch(() => toast('复制失败，请手动选择。', 'error'));
                           }}
                         >
                           复制
@@ -662,7 +764,7 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
                       </div>
                     </>
                   ) : (
-                    <p className="lora-detail-empty">还没有推荐前缀。点击「编辑信息」填写，例如 masterpiece, best quality。</p>
+                    <p className="lora-detail-empty">还没有推荐负面提示词。点击「编辑信息」填写。</p>
                   )}
                 </div>
 

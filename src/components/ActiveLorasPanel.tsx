@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Lora, ProductLora } from '../domain/types';
-import { fillLoraTemplate, formatWeight } from '../domain/lora';
+import { fillLoraTemplate, formatWeight, loraPromptPrefixes } from '../domain/lora';
 import { modelTypeLabel } from '../domain/presets';
 import { useAppStore } from '../store/appStore';
 import { Icon } from './ui/Icon';
@@ -38,11 +38,15 @@ function ActiveLoraItem({
   const toast = useAppStore((state) => state.toast);
   const englishText = useAppStore((state) => state.workspace.englishText);
   const setEnglishText = useAppStore((state) => state.setEnglishText);
+  const negativeText = useAppStore((state) => state.workspace.negativeText);
+  const setNegativeText = useAppStore((state) => state.setNegativeText);
 
   const [triggerText, setTriggerText] = useState(active.triggerWords.join(', '));
   useEffect(() => {
     setTriggerText(active.triggerWords.join(', '));
   }, [active.triggerWords]);
+
+  const prefixes = loraPromptPrefixes(active);
 
   const min = definition?.weightMin ?? -2;
   const max = definition?.weightMax ?? 2;
@@ -81,17 +85,31 @@ function ActiveLoraItem({
     toast(`已添加 ${token}（触发词）到英文提示词。`, 'success');
   };
 
-  const addPrefix = () => {
-    const prefix = (active.promptPrefix ?? '').trim();
-    if (!prefix) return;
+  const addPrefixes = (prefixes: string[]) => {
+    const clean = prefixes.map((prefix) => prefix.trim()).filter(Boolean);
+    if (clean.length === 0) return;
+    const combined = clean.join(', ');
     const base = englishText.trim();
-    if (base.toLowerCase().startsWith(prefix.toLowerCase())) {
-      toast('英文提示词已经以这个推荐前缀开头。', 'info');
+    if (base.toLowerCase().startsWith(combined.toLowerCase())) {
+      toast('英文提示词已经以这些推荐前缀开头。', 'info');
       return;
     }
-    const separator = /[,，.。]$/.test(prefix) ? ' ' : ', ';
-    setEnglishText(`${prefix}${separator}${base}`.trim());
-    toast('已把推荐前缀放到英文提示词开头。', 'success');
+    const separator = /[,，.。]$/.test(combined) ? ' ' : ', ';
+    setEnglishText(base ? `${combined}${separator}${base}`.trim() : combined);
+    toast(clean.length > 1 ? '已把全部推荐前缀放到英文提示词开头。' : '已把推荐前缀放到英文提示词开头。', 'success');
+  };
+
+  const addRecommendedNegative = () => {
+    const clean = (active.recommendedNegative ?? '').trim();
+    if (!clean) return;
+    const base = negativeText.trim();
+    if (base.toLowerCase().includes(clean.toLowerCase())) {
+      toast('负面英文中已包含这段推荐词。', 'info');
+      return;
+    }
+    const separator = base && !/[,，.。]$/.test(base) ? ', ' : base ? ' ' : '';
+    setNegativeText(`${base}${separator}${clean}`);
+    toast('已把推荐负面提示词加入负面英文框。', 'success');
   };
 
   return (
@@ -219,15 +237,41 @@ function ActiveLoraItem({
         </div>
       ) : null}
 
-      {(active.promptPrefix ?? '').trim() ? (
+      {prefixes.length > 0 ? (
         <div className="active-lora-prefix">
           <div className="active-lora-prefix-head">
-            <span>推荐前缀</span>
-            <button type="button" className="link-button" onClick={addPrefix}>
-              加入英文开头
+            <span>推荐前缀 · {prefixes.length}</span>
+            <button type="button" className="link-button" onClick={() => addPrefixes(prefixes)}>
+              全部加入英文开头
             </button>
           </div>
-          <code>{active.promptPrefix}</code>
+          <div className="active-lora-prefix-list">
+            {prefixes.map((prefix) => (
+              <div className="active-lora-prefix-row" key={prefix}>
+                <code>{prefix}</code>
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => addPrefixes([prefix])}
+                  title="只加入这一条前缀"
+                >
+                  加入
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {(active.recommendedNegative ?? '').trim() ? (
+        <div className="active-lora-prefix active-lora-negative">
+          <div className="active-lora-prefix-head">
+            <span>推荐负面</span>
+            <button type="button" className="link-button" onClick={addRecommendedNegative}>
+              加入负面英文
+            </button>
+          </div>
+          <code>{active.recommendedNegative}</code>
         </div>
       ) : null}
 

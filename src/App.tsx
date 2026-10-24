@@ -31,7 +31,7 @@ function LoadingScreen() {
         </span>
         <div>
           <div className="loading-title">正在读取本地数据…</div>
-          <div className="loading-sub">Prompt Studio 仅在本浏览器中保存你的内容。</div>
+          <div className="loading-sub">FS-Prompt Studio 仅在本浏览器中保存你的内容。</div>
         </div>
         <span className="spinner" aria-hidden />
       </div>
@@ -133,7 +133,7 @@ export default function App() {
 
         <div className="footer-note">
           <span>
-            Prompt Studio · v1.2.0 · 数据保存在本地
+            FS-Prompt Studio · v1.3.0 · 数据保存在本地
             {serverConfig ? ` · 翻译：${serverConfig.isMock ? '模拟模式' : serverConfig.label}` : ''}
           </span>
           <button

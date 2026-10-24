@@ -197,7 +197,7 @@ export function parseBackupText(raw: string): BackupParseResult {
   try {
     json = JSON.parse(raw);
   } catch {
-    return { ok: false, error: '文件不是合法的 JSON，请确认选择的是 Prompt Studio 导出的备份文件。' };
+    return { ok: false, error: '文件不是合法的 JSON，请确认选择的是 FS-Prompt Studio 导出的备份文件。' };
   }
   const parsed = BackupSchema.safeParse(json);
   if (!parsed.success) {

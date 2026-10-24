@@ -71,7 +71,7 @@ export function openDatabase(): Promise<IDBDatabase> {
     };
     request.onblocked = () => {
       dbPromise = null;
-      reject(new Error('本地数据库正被其它页面占用，请关闭其它 Prompt Studio 标签页后刷新。'));
+      reject(new Error('本地数据库正被其它页面占用，请关闭其它 FS-Prompt Studio 标签页后刷新。'));
     };
   });
   return dbPromise;

@@ -4,6 +4,7 @@ import { collectLoraTerms } from '../domain/loraTerms';
 import { copyText } from '../domain/id';
 import { translateSingleText } from '../services/translation';
 import { useAppStore } from '../store/appStore';
+import { AtMentionTextarea } from './AtMentionTextarea';
 import { Icon } from './ui/Icon';
 import { Button, Card } from './ui/primitives';
 
@@ -80,10 +81,10 @@ export function QuickTranslateCard() {
         <span className="meta-spacer" />
         <span>{input.length} 字符</span>
       </div>
-      <textarea
+      <AtMentionTextarea
         className="input textarea quick-translate-input"
         value={input}
-        onChange={(event) => setInput(event.target.value)}
+        onChange={setInput}
         onKeyDown={(event) => {
           if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
             event.preventDefault();

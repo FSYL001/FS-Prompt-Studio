@@ -38,7 +38,7 @@ async function addLora(name, file, trigger, prefix = '') {
   await page.getByPlaceholder('style_watercolor.safetensors').fill(file);
   await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill(trigger);
   if (prefix) {
-    await page.getByPlaceholder('masterpiece, best quality, highly detailed').fill(prefix);
+    await page.getByRole('textbox', { name: '推荐提示词前缀' }).fill(prefix);
   }
   await page.getByRole('button', { name: '保存 LoRA' }).click();
   await dialog.locator('.lora-index-item', { hasText: name }).click();
@@ -65,14 +65,25 @@ try {
   );
 
   // 片段模式：点单词/单句加权，括号写回英文提示词
-  await page.getByRole('button', { name: '片段', exact: true }).click();
+  const enBox = page.locator('.translation-box').nth(1);
+  await enBox.getByRole('button', { name: '片段', exact: true }).click();
   await page.locator('.weighted-editor').waitFor();
   await page.getByRole('button', { name: /加权/ }).click();
   await page.locator('.weighted-unit').first().click();
-  await page.getByRole('button', { name: '文本', exact: true }).click();
+  await enBox.getByRole('button', { name: '文本', exact: true }).click();
   const weightedEnglish = await englishInput.inputValue();
   assert(/\([^()]+\)/.test(weightedEnglish), '点击加权后英文提示词中应出现圆括号');
   await shot('11-segments');
+
+  // 中文同样支持片段模式与加权
+  const zhBox = page.locator('.translation-box').first();
+  await zhBox.getByRole('button', { name: '片段', exact: true }).click();
+  assert((await zhBox.locator('.weighted-unit').count()) >= 3, '中文应切分为多个可点击单元');
+  await zhBox.getByRole('button', { name: /加权/ }).click();
+  await zhBox.locator('.weighted-unit').nth(1).click();
+  await zhBox.getByRole('button', { name: '文本', exact: true }).click();
+  const weightedZh = await page.getByRole('textbox', { name: '中文翻译' }).inputValue();
+  assert(/\([^()]+\)/.test(weightedZh), '中文加权后应出现圆括号');
 
   // 多个 LoRA 与不同权重
   await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style', 'masterpiece, best quality');
@@ -81,8 +92,8 @@ try {
   // 推荐提示词前缀：查看并置顶加入英文
   await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
   await dialog.locator('.lora-index-item', { hasText: '水彩风格' }).click();
-  assert((await dialog.locator('.lora-prefix').innerText()).includes('masterpiece'), 'LoRA 详情应显示推荐前缀');
-  await dialog.getByRole('button', { name: '加入英文开头' }).click();
+  assert((await dialog.locator('.lora-prefix').first().innerText()).includes('masterpiece'), 'LoRA 详情应显示推荐前缀');
+  await dialog.getByRole('button', { name: '全部加入英文开头' }).click();
   await dialog.getByRole('button', { name: '关闭' }).last().click();
   assert(
     (await englishInput.inputValue()).startsWith('masterpiece, best quality'),
@@ -97,6 +108,18 @@ try {
   assert(
     (await englishInput.inputValue()).includes('@watercolor_style'),
     '点击 @触发词 后应加入英文提示词',
+  );
+
+  // 输入 @ 自动出现 LoRA 触发词并插入
+  await englishInput.click();
+  await englishInput.press('End');
+  await englishInput.pressSequentially(' @ci');
+  await page.locator('.at-mention-popover').waitFor();
+  assert((await page.locator('.at-mention-item').count()) >= 1, '@ 补全应显示匹配触发词');
+  await page.locator('.at-mention-item').first().click();
+  assert(
+    (await englishInput.inputValue()).includes('@cinematic_light'),
+    '选择 @ 补全项后应插入触发词',
   );
 
   await page.getByRole('spinbutton', { name: '水彩风格 权重' }).fill('0.65');
@@ -124,12 +147,14 @@ try {
   assert(quickResult.includes('@dizzy'), '小翻译也必须保留 @dizzy 触发词');
   await shot('16-quick-translate');
 
-  // 负面提示词：复制英文翻译，并随成品保存
-  await page.getByRole('button', { name: '复制英文翻译' }).click();
-  const negativeInput = page.getByRole('textbox', { name: '负面提示词' });
+  // 负面提示词：复制正向翻译，并随成品保存
+  await page.getByRole('button', { name: '复制正向翻译' }).click();
+  const negativeZhInput = page.getByRole('textbox', { name: '负面中文' });
+  const negativeInput = page.getByRole('textbox', { name: '负面英文' });
   const negativeValue = await negativeInput.inputValue();
-  assert(negativeValue.includes('@watercolor_style'), '复制英文翻译后负面提示词应包含触发词');
-  assert(negativeValue.includes('masterpiece'), '负面提示词应复制完整英文前缀');
+  assert(negativeValue.includes('@watercolor_style'), '复制正向翻译后负面英文应包含触发词');
+  assert(negativeValue.includes('masterpiece'), '负面英文应复制完整英文前缀');
+  assert((await negativeZhInput.inputValue()).length > 0, '负面中文也应复制一份');
   await shot('17-negative-prompt');
 
   // 生成多 LoRA 成品
@@ -138,6 +163,7 @@ try {
   assert((await page.locator('.product-card .lora-chip').count()) === 2, '成品应包含两个 LoRA');
   const productNegative = await page.locator('.product-card .product-prompt-block.is-negative').innerText();
   assert(productNegative.includes('@watercolor_style'), '成品应保存负面提示词');
+  assert(productNegative.includes('中文负面'), '成品应保存负面中文');
   await shot('12-multi-lora');
 
   // 编辑成品

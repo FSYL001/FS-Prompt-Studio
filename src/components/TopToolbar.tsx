@@ -76,12 +76,12 @@ export function TopToolbar() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <a className="brand" href="/" aria-label="Prompt Studio 首页">
+        <a className="brand" href="/" aria-label="FS-Prompt Studio 首页">
           <span className="brand-mark" aria-hidden>
             <Icon name="wand" size={19} />
           </span>
           <span className="brand-text">
-            <span className="brand-name">Prompt Studio</span>
+            <span className="brand-name">FS-Prompt Studio</span>
             <span className="brand-sub">AI 生图提示词编辑器</span>
           </span>
         </a>

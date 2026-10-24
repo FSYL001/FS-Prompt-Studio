@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { detectLanguage } from '../domain/promptParse';
 import { copyText } from '../domain/id';
 import { useAppStore } from '../store/appStore';
+import { AtMentionTextarea } from './AtMentionTextarea';
 import { Badge, Button, Card, IconButton } from './ui/primitives';
 
 export function DraftPanel() {
@@ -85,11 +86,11 @@ export function DraftPanel() {
         </Button>
       </div>
 
-      <textarea
-        ref={textareaRef}
+      <AtMentionTextarea
+        textareaRef={textareaRef}
         className="editor-textarea draft-textarea"
         value={draftText}
-        onChange={(event) => setDraftText(event.target.value)}
+        onChange={(value) => setDraftText(value)}
         onKeyDown={(event) => {
           const mod = event.ctrlKey || event.metaKey;
           if (!mod) return;
