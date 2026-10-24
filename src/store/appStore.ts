@@ -67,14 +67,14 @@ export interface TranslateErrorInfo {
 }
 
 export interface PreTranslateBackup {
-  side: 'draft' | 'english';
+  side: 'translation' | 'english';
   text: string;
   alignment: Alignment | null;
   at: string;
 }
 
 export interface LastTranslation {
-  side: 'draft' | 'english';
+  side: 'translation' | 'english';
   text: string;
   alignment: Alignment | null;
   at: string;
@@ -108,6 +108,7 @@ export interface ConfirmState extends ConfirmOptions {
 
 export interface EditorSnapshot {
   draftText: string;
+  translationZhText: string;
   englishText: string;
   negativeText: string;
   alignment: Alignment | null;
@@ -138,7 +139,7 @@ export interface AppState {
   undoStack: EditorSnapshot[];
   redoStack: EditorSnapshot[];
 
-  alignmentMode: { draft: boolean; english: boolean };
+  alignmentVisible: boolean;
 
   toasts: ToastItem[];
   modal: ModalState;
@@ -172,21 +173,24 @@ export interface AppState {
   setActiveWorkflow: (id: string | null) => void;
 
   setDraftText: (text: string) => void;
+  setTranslationZhText: (text: string) => void;
   setEnglishText: (text: string) => void;
   setNegativeText: (text: string) => void;
   setNotes: (text: string) => void;
   setParams: (patch: Partial<PromptParams>) => void;
   clearDraft: () => void;
+  clearTranslationZh: () => void;
   clearEnglish: () => void;
   clearNegative: () => void;
+  useDraftForTranslation: () => void;
   undo: () => void;
   redo: () => void;
-  setAlignmentMode: (side: 'draft' | 'english', enabled: boolean) => void;
+  toggleAlignment: () => void;
 
   requestTranslate: (direction?: Direction) => void;
   runTranslation: (direction: Direction) => Promise<void>;
   restorePreTranslation: () => void;
-  restoreLastTranslation: (side: 'draft' | 'english') => void;
+  restoreLastTranslation: (side: 'translation' | 'english') => void;
   dismissTranslateError: () => void;
 
   enterSegmentsMode: () => void;
@@ -247,6 +251,7 @@ let lastUndoAt = 0;
 function snapshotEditor(workspace: Workspace): EditorSnapshot {
   return {
     draftText: workspace.draftText,
+    translationZhText: workspace.translationZhText,
     englishText: workspace.englishText,
     negativeText: workspace.negativeText,
     alignment: workspace.alignment,
@@ -268,6 +273,7 @@ function withUndo(state: AppState, force = false): Partial<AppState> {
 function snapshotWorkspace(workspace: Workspace): WorkspaceSnapshot {
   return {
     draftText: workspace.draftText,
+    translationZhText: workspace.translationZhText,
     englishText: workspace.englishText,
     negativeText: workspace.negativeText,
     alignment: workspace.alignment,
@@ -283,6 +289,7 @@ function workspaceFromSnapshot(snapshot: WorkspaceSnapshot, current: Workspace):
   return {
     ...current,
     draftText: snapshot.draftText,
+    translationZhText: snapshot.translationZhText,
     englishText: snapshot.englishText,
     negativeText: snapshot.negativeText,
     alignment: snapshot.alignment,
@@ -382,7 +389,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   undoStack: [],
   redoStack: [],
-  alignmentMode: { draft: false, english: false },
+  alignmentVisible: false,
 
   toasts: [],
   modal: { type: null },
@@ -525,6 +532,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
       ...withUndo(state),
       workspace: { ...state.workspace, draftText: text },
     })),
+  setTranslationZhText: (text) =>
+    set((state) => ({
+      ...withUndo(state),
+      workspace: { ...state.workspace, translationZhText: text },
+    })),
   setEnglishText: (text) =>
     set((state) => ({
       ...withUndo(state),
@@ -541,7 +553,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
   clearDraft: () =>
     set((state) => ({
       ...withUndo(state, true),
-      workspace: { ...state.workspace, draftText: '', alignment: null },
+      workspace: { ...state.workspace, draftText: '' },
+    })),
+  clearTranslationZh: () =>
+    set((state) => ({
+      ...withUndo(state, true),
+      workspace: { ...state.workspace, translationZhText: '', alignment: null },
       preTranslateBackup: null,
     })),
   clearEnglish: () =>
@@ -557,6 +574,22 @@ export const useAppStore = create<AppState>()((set, get) => ({
     })),
   clearNegative: () =>
     set((state) => ({ ...withUndo(state, true), workspace: { ...state.workspace, negativeText: '' } })),
+  useDraftForTranslation: () => {
+    const state = get();
+    if (!state.workspace.draftText.trim()) {
+      get().toast('草稿是空的，没有内容可以填入。', 'info');
+      return;
+    }
+    set({
+      ...withUndo(state, true),
+      workspace: {
+        ...state.workspace,
+        translationZhText: state.workspace.draftText,
+        updatedAt: nowIso(),
+      },
+    });
+    get().toast('已把草稿填入翻译中文框，可以直接翻译。', 'success');
+  },
   undo: () =>
     set((state) => {
       const previous = state.undoStack[state.undoStack.length - 1];
@@ -579,25 +612,39 @@ export const useAppStore = create<AppState>()((set, get) => ({
         workspace: { ...state.workspace, ...next },
       };
     }),
-  setAlignmentMode: (side, enabled) =>
-    set((state) => ({ alignmentMode: { ...state.alignmentMode, [side]: enabled } })),
+  toggleAlignment: () => set((state) => ({ alignmentVisible: !state.alignmentVisible })),
 
   requestTranslate: (direction) => {
     const state = get();
     if (state.translateBusy) return;
-    const draft = state.workspace.draftText.trim();
+    let translation = state.workspace.translationZhText.trim();
     const english = state.workspace.englishText.trim();
-    if (!draft && !english) {
-      get().toast('请先在草稿或英文提示词中输入内容。', 'warning');
-      return;
+    const draft = state.workspace.draftText.trim();
+    if (!translation && !english) {
+      if (!draft) {
+        get().toast('请先在草稿或翻译框中输入内容。', 'warning');
+        return;
+      }
+      set({
+        workspace: { ...state.workspace, translationZhText: state.workspace.draftText, updatedAt: nowIso() },
+      });
+      translation = draft;
     }
 
     if (direction) {
-      const source = direction === 'zh-en' ? draft : english;
-      const target = direction === 'zh-en' ? english : draft;
+      if (direction === 'zh-en' && !translation && draft) {
+        set({
+          workspace: { ...state.workspace, translationZhText: state.workspace.draftText, updatedAt: nowIso() },
+        });
+        translation = draft;
+      }
+      const source = direction === 'zh-en' ? translation : english;
+      const target = direction === 'zh-en' ? english : translation;
       if (!source) {
         get().toast(
-          direction === 'zh-en' ? '草稿是空的，没有可翻译的中文。' : '英文提示词是空的，没有可翻译的英文。',
+          direction === 'zh-en'
+            ? '翻译中文框是空的，没有可翻译的中文。可以先点「使用草稿」。'
+            : '英文框是空的，没有可翻译的英文。',
           'warning',
         );
         return;
@@ -607,8 +654,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
           title: '替换现有内容？',
           message:
             direction === 'zh-en'
-              ? '翻译将覆盖当前英文提示词。翻译前的内容会保留，可以随时恢复。'
-              : '翻译将覆盖当前中文草稿。翻译前的内容会保留，可以随时恢复。',
+              ? '翻译将覆盖当前英文框。翻译前的内容会保留，可以随时恢复。'
+              : '翻译将覆盖当前中文翻译框。翻译前的内容会保留，可以随时恢复。',
           confirmLabel: '翻译并替换',
           onConfirm: () => get().runTranslation(direction),
         });
@@ -618,24 +665,25 @@ export const useAppStore = create<AppState>()((set, get) => ({
       return;
     }
 
-    if (draft && english) {
+    if (translation && english) {
       set({ modal: { type: 'translate-direction' } });
       return;
     }
-    void get().runTranslation(draft ? 'zh-en' : 'en-zh');
+    void get().runTranslation(translation ? 'zh-en' : 'en-zh');
   },
 
   runTranslation: async (direction) => {
     const state = get();
     if (state.translateBusy) return;
     const { workspace, settings } = state;
-    const sourceText = direction === 'zh-en' ? workspace.draftText : workspace.englishText;
+    const sourceText = direction === 'zh-en' ? workspace.translationZhText : workspace.englishText;
     if (!sourceText.trim()) {
       get().toast('没有可翻译的内容。', 'warning');
       return;
     }
-    const targetSide: 'draft' | 'english' = direction === 'zh-en' ? 'english' : 'draft';
-    const previousTargetText = direction === 'zh-en' ? workspace.englishText : workspace.draftText;
+    const targetSide: 'translation' | 'english' = direction === 'zh-en' ? 'english' : 'translation';
+    const previousTargetText =
+      direction === 'zh-en' ? workspace.englishText : workspace.translationZhText;
     const backup: PreTranslateBackup | null = previousTargetText.trim()
       ? {
           side: targetSide,
@@ -666,8 +714,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
         set({ translateBusy: false, status: { kind: 'idle' }, preTranslateBackup: null });
         get().toast(
           direction === 'zh-en'
-            ? '没有检测到需要翻译的中文内容，英文提示词未改动。'
-            : '没有检测到需要翻译的英文内容，草稿未改动。',
+            ? '没有检测到需要翻译的中文，英文框未改动。'
+            : '没有检测到需要翻译的英文，中文翻译框未改动。',
           'info',
         );
         return;
@@ -677,7 +725,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const patch: Partial<Workspace> =
         direction === 'zh-en'
           ? { englishText: outcome.text, alignment: outcome.alignment }
-          : { draftText: outcome.text, alignment: outcome.alignment };
+          : { translationZhText: outcome.text, alignment: outcome.alignment };
       if (direction === 'zh-en' && current.workspace.segmentsMode) {
         patch.segments = deriveSegments(outcome.text, current.workspace.segments);
       }
@@ -723,7 +771,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       ...withUndo(state, true),
       workspace: {
         ...state.workspace,
-        draftText: backup.side === 'draft' ? backup.text : state.workspace.draftText,
+        translationZhText:
+          backup.side === 'translation' ? backup.text : state.workspace.translationZhText,
         englishText: backup.side === 'english' ? backup.text : state.workspace.englishText,
         alignment: backup.alignment,
         updatedAt: nowIso(),
@@ -745,7 +794,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       ...withUndo(state, true),
       workspace: {
         ...state.workspace,
-        draftText: side === 'draft' ? last.text : state.workspace.draftText,
+        translationZhText: side === 'translation' ? last.text : state.workspace.translationZhText,
         englishText: side === 'english' ? last.text : state.workspace.englishText,
         alignment: last.alignment,
         updatedAt: nowIso(),
@@ -1175,6 +1224,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const product = createProduct({
         englishText: workspace.englishText,
         draftText: workspace.draftText,
+        translationZhText: workspace.translationZhText,
         negativeText: workspace.negativeText,
         segments: workspace.segments,
         activeLoras: workspace.activeLoras,
@@ -1205,7 +1255,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       if (assembly.warnings.length > 0) {
         get().toast(assembly.warnings[0], 'warning');
       } else {
-        get().toast('成品已生成，草稿与译文保持不变。', 'success');
+        get().toast('成品已生成，草稿与翻译内容保持不变。', 'success');
       }
       return product;
     } catch (error) {
@@ -1258,7 +1308,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
       get().toast('找不到这个成品。', 'error');
       return;
     }
-    if (state.workspace.draftText.trim() || state.workspace.englishText.trim()) {
+    if (
+      state.workspace.draftText.trim() ||
+      state.workspace.translationZhText.trim() ||
+      state.workspace.englishText.trim()
+    ) {
       const backup = buildHistoryEntry('draft', `载入成品前自动备份 ${nowIso().slice(11, 19)}`, state.workspace);
       await saveHistoryRecord(backup).catch(() => undefined);
       set((current) => ({ history: [backup, ...current.history] }));
@@ -1266,6 +1320,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const workspace: Workspace = {
       ...state.workspace,
       draftText: product.draftText,
+      translationZhText: product.translationZhText || product.draftText,
       englishText: product.englishText,
       negativeText: product.negativeText,
       alignment: product.alignment,
@@ -1366,7 +1421,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     try {
       await saveWorkspaceRecord({ ...get().workspace, updatedAt: at });
       set({ status: { kind: 'saved', at }, lastSavedAt: at });
-      get().toast('已保存当前草稿。', 'success');
+      get().toast('已保存当前内容。', 'success');
     } catch (error) {
       set({ status: { kind: 'error', message: friendlyError(error).message } });
       get().toast(`保存失败：${friendlyError(error).message}`, 'error');
@@ -1374,7 +1429,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
   newPrompt: async () => {
     const state = get();
-    if (state.workspace.draftText.trim() || state.workspace.englishText.trim()) {
+    if (
+      state.workspace.draftText.trim() ||
+      state.workspace.translationZhText.trim() ||
+      state.workspace.englishText.trim()
+    ) {
       const backup = buildHistoryEntry(
         'draft',
         `新建前自动备份 ${nowIso().slice(11, 19)}`,
@@ -1395,7 +1454,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         presetId: state.workspace.presetId,
         updatedAt: nowIso(),
       },
-      alignmentMode: { draft: false, english: false },
+      alignmentVisible: false,
       translateError: null,
       preTranslateBackup: null,
       lastTranslation: null,

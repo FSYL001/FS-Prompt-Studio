@@ -356,6 +356,10 @@ export function HistoryModal({ onClose }: { onClose: () => void }) {
                         <pre className="detail-pre">{snapshot.draftText || '（空）'}</pre>
                       </div>
                       <div>
+                        <span className="detail-label">中文翻译框</span>
+                        <pre className="detail-pre">{snapshot.translationZhText || '（空）'}</pre>
+                      </div>
+                      <div>
                         <span className="detail-label">英文提示词</span>
                         <pre className="detail-pre">{snapshot.englishText || '（空）'}</pre>
                       </div>

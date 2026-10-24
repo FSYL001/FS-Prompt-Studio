@@ -36,9 +36,10 @@ async function addLora(name, file, trigger) {
   await dialog.getByRole('button', { name: '添加 LoRA' }).click();
   await page.getByPlaceholder('例如：清新水彩风').fill(name);
   await page.getByPlaceholder('style_watercolor.safetensors').fill(file);
-  await page.getByPlaceholder('例如：my_style, watercolor_style').fill(trigger);
+  await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill(trigger);
   await page.getByRole('button', { name: '保存 LoRA' }).click();
-  await dialog.getByRole('button', { name: '添加到当前', exact: true }).click();
+  await dialog.locator('.lora-index-item', { hasText: name }).click();
+  await dialog.getByRole('button', { name: '添加到当前作品' }).click();
   await dialog.getByRole('button', { name: '关闭' }).last().click();
 }
 
@@ -60,19 +61,30 @@ try {
     { timeout: 45000 },
   );
 
-  // 片段模式：修改片段后英文同步
-  await page.getByRole('button', { name: '片段模式' }).click();
-  await page.locator('.segment-row').first().waitFor();
-  const segmentCount = await page.locator('.segment-row').count();
-  assert(segmentCount >= 4, '英文应拆分成多个片段');
-  await page.getByLabel('片段 1 内容').fill('a white-haired girl, smiling');
-  await page.getByRole('button', { name: '文本模式' }).click();
-  assert((await englishInput.inputValue()).includes('smiling'), '修改片段后英文应同步更新');
+  // 片段模式：点单词/单句加权，括号写回英文提示词
+  await page.getByRole('button', { name: '片段', exact: true }).click();
+  await page.locator('.weighted-editor').waitFor();
+  await page.getByRole('button', { name: /加权/ }).click();
+  await page.locator('.weighted-unit').first().click();
+  await page.getByRole('button', { name: '文本', exact: true }).click();
+  const weightedEnglish = await englishInput.inputValue();
+  assert(/\([^()]+\)/.test(weightedEnglish), '点击加权后英文提示词中应出现圆括号');
   await shot('11-segments');
 
   // 多个 LoRA 与不同权重
   await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style');
   await addLora('光影增强', 'lighting_v2.safetensors', 'cinematic_light');
+
+  // 打开 LoRA 记事本，点击 @触发词 加入英文提示词
+  await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
+  await dialog.locator('.lora-index-item', { hasText: '水彩风格' }).click();
+  await dialog.locator('.trigger-pill', { hasText: '@watercolor_style' }).click();
+  await dialog.getByRole('button', { name: '关闭' }).last().click();
+  assert(
+    (await englishInput.inputValue()).includes('@watercolor_style'),
+    '点击 @触发词 后应加入英文提示词',
+  );
+
   await page.getByRole('spinbutton', { name: '水彩风格 权重' }).fill('0.65');
   await page.getByRole('spinbutton', { name: '光影增强 权重' }).fill('1.1');
   await page.getByRole('spinbutton', { name: '光影增强 权重' }).blur();

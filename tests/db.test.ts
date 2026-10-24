@@ -97,6 +97,7 @@ describe('本地数据层', () => {
       productId: product.id,
       snapshot: {
         draftText: product.draftText,
+        translationZhText: product.translationZhText,
         englishText: product.englishText,
         negativeText: product.negativeText,
         alignment: null,

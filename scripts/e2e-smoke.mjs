@@ -60,8 +60,8 @@ try {
   assert(/white[- ]?hair/i.test(english), '英文结果应包含 white hair');
   assert(/black dress/i.test(english), '英文结果应包含 black dress');
 
-  await page.getByRole('switch', { name: '开启英文对照翻译' }).click();
-  const pairs = page.locator('.aligned-row');
+  await page.getByRole('switch', { name: '开启对照翻译' }).click();
+  const pairs = page.locator('.aligned-cell');
   assert((await pairs.count()) >= 3, '对照翻译应显示多个片段');
   await pairs.first().click();
   await screenshot('02-aligned');
@@ -87,9 +87,10 @@ try {
   await page.getByRole('dialog').getByRole('button', { name: '添加 LoRA' }).click();
   await page.getByPlaceholder('例如：清新水彩风').fill('水彩风格');
   await page.getByPlaceholder('style_watercolor.safetensors').fill('watercolor_v1.safetensors');
-  await page.getByPlaceholder('例如：my_style, watercolor_style').fill('watercolor_style');
+  await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill('watercolor_style');
   await page.getByRole('button', { name: '保存 LoRA' }).click();
-  await page.getByRole('button', { name: '添加到当前' }).click();
+  await page.getByRole('dialog').locator('.lora-index-item', { hasText: '水彩风格' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '添加到当前作品' }).click();
   await page.getByRole('button', { name: '关闭' }).last().click();
 
   const weightInput = page.getByRole('spinbutton', { name: '水彩风格 权重' });
@@ -134,7 +135,16 @@ try {
   await page.locator('.toolbar-btn', { hasText: '设置' }).click();
   await page.getByRole('heading', { name: '设置' }).waitFor();
   await screenshot('06-settings');
+  await page.getByPlaceholder('http://127.0.0.1:8188/').fill('http://127.0.0.1:5173/');
   await page.getByRole('button', { name: '完成' }).click();
+
+  // 自定义「前往生图」地址
+  const popupPromise = context.waitForEvent('page');
+  await page.getByRole('button', { name: '前往生图' }).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState('domcontentloaded').catch(() => {});
+  assert(popup.url().startsWith('http://127.0.0.1:5173/'), '前往生图应打开自定义地址');
+  await popup.close();
 
   // 深色主题截图
   await page.getByRole('button', { name: '切换到深色主题' }).click();

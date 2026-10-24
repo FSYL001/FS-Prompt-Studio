@@ -36,6 +36,8 @@ function ActiveLoraItem({
   const output = useAppStore((state) => state.settings.output);
   const openModal = useAppStore((state) => state.openModal);
   const toast = useAppStore((state) => state.toast);
+  const englishText = useAppStore((state) => state.workspace.englishText);
+  const setEnglishText = useAppStore((state) => state.setEnglishText);
 
   const [triggerText, setTriggerText] = useState(active.triggerWords.join(', '));
   useEffect(() => {
@@ -61,10 +63,22 @@ function ActiveLoraItem({
   const commitTriggers = () => {
     const next = triggerText
       .split(/[,，]/)
-      .map((item) => item.trim())
+      .map((item) => item.trim().replace(/^@+/, ''))
       .filter(Boolean)
       .slice(0, 50);
     updateActiveLora(index, { triggerWords: next });
+  };
+
+  const addTrigger = (trigger: string) => {
+    const token = trigger.startsWith('@') ? trigger : `@${trigger}`;
+    const base = englishText.trim();
+    if (base.toLowerCase().includes(token.toLowerCase())) {
+      toast(`英文提示词中已有 ${token}。`, 'info');
+      return;
+    }
+    const separator = base && !/[,，.。]$/.test(base) ? ', ' : base ? ' ' : '';
+    setEnglishText(`${base}${separator}${token}`);
+    toast(`已添加 ${token}（触发词）到英文提示词。`, 'success');
   };
 
   return (
@@ -175,6 +189,22 @@ function ActiveLoraItem({
           spellCheck={false}
         />
       </label>
+
+      {active.triggerWords.length > 0 ? (
+        <div className="trigger-chip-list compact">
+          {active.triggerWords.map((trigger) => (
+            <button
+              key={trigger}
+              type="button"
+              className="trigger-pill"
+              onClick={() => addTrigger(trigger)}
+              title="点击加入英文提示词"
+            >
+              @{trigger}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="lora-token-preview" title="按当前输出设置生成的 LoRA 片段">
         <code>{tokenPreview}</code>

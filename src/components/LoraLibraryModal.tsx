@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Lora, ModelType } from '../domain/types';
 import { MODEL_TYPES } from '../domain/types';
 import { formatWeight } from '../domain/lora';
-import { newId, nowIso } from '../domain/id';
+import { copyText, newId, nowIso } from '../domain/id';
 import { modelTypeLabel } from '../domain/presets';
 import { useAppStore } from '../store/appStore';
 import { Modal } from './ui/Modal';
@@ -19,18 +19,16 @@ import { Icon } from './ui/Icon';
 function parseTriggers(raw: string): string[] {
   return raw
     .split(/[,，\n]/)
-    .map((item) => item.trim())
+    .map((item) => item.trim().replace(/^@+/, ''))
     .filter(Boolean)
     .slice(0, 50);
 }
 
-function LoraEditForm({
-  lora,
-  onBack,
-}: {
-  lora: Lora | null;
-  onBack: () => void;
-}) {
+function triggerLabel(trigger: string): string {
+  return trigger.startsWith('@') ? trigger : `@${trigger}`;
+}
+
+function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void }) {
   const saveLora = useAppStore((state) => state.saveLora);
   const deleteLora = useAppStore((state) => state.deleteLora);
   const confirmAction = useAppStore((state) => state.confirmAction);
@@ -180,12 +178,15 @@ function LoraEditForm({
         </Field>
       </div>
 
-      <Field label="触发词" hint="多个触发词用逗号分隔。触发词会按设置追加到成品提示词。">
+      <Field
+        label="触发词"
+        hint="多个触发词用逗号分隔，可带 @，例如 @dizzy, @watercolor。保存时会自动去掉开头的 @。"
+      >
         <input
           className="input"
           value={triggerText}
           onChange={(event) => setTriggerText(event.target.value)}
-          placeholder="例如：my_style, watercolor_style"
+          placeholder="例如：@dizzy, watercolor_style"
           spellCheck={false}
         />
       </Field>
@@ -194,11 +195,7 @@ function LoraEditForm({
         <div className="model-type-grid">
           {MODEL_TYPES.map((type) => (
             <label key={type} className={`check-chip ${modelTypes.includes(type) ? 'is-checked' : ''}`}>
-              <input
-                type="checkbox"
-                checked={modelTypes.includes(type)}
-                onChange={() => toggleModel(type)}
-              />
+              <input type="checkbox" checked={modelTypes.includes(type)} onChange={() => toggleModel(type)} />
               {modelTypeLabel(type)}
             </label>
           ))}
@@ -240,12 +237,7 @@ function LoraEditForm({
       </Field>
 
       <div className="form-grid">
-        <ToggleRow
-          label="收藏"
-          checked={favorite}
-          onChange={setFavorite}
-          hint="收藏的 LoRA 会排在库的前面。"
-        />
+        <ToggleRow label="收藏" checked={favorite} onChange={setFavorite} hint="收藏的 LoRA 会排在库的前面。" />
         <ToggleRow
           label="启用"
           checked={enabled}
@@ -290,16 +282,21 @@ function LoraEditForm({
 export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
   const loras = useAppStore((state) => state.loras);
   const activeLoras = useAppStore((state) => state.workspace.activeLoras);
+  const englishText = useAppStore((state) => state.workspace.englishText);
   const addActiveLora = useAppStore((state) => state.addActiveLora);
+  const removeActiveLora = useAppStore((state) => state.removeActiveLora);
+  const setEnglishText = useAppStore((state) => state.setEnglishText);
   const toggleFavorite = useAppStore((state) => state.toggleLoraFavorite);
   const setLoraEnabled = useAppStore((state) => state.setLoraEnabled);
   const deleteLora = useAppStore((state) => state.deleteLora);
   const confirmAction = useAppStore((state) => state.confirmAction);
+  const toast = useAppStore((state) => state.toast);
 
   const [editing, setEditing] = useState<Lora | null | 'new'>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const categories = useMemo(() => {
     const set = new Set(loras.map((lora) => lora.category || '未分类'));
@@ -332,6 +329,54 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
       });
   }, [loras, search, category, favoriteOnly]);
 
+  useEffect(() => {
+    if (filtered.length === 0) {
+      if (selectedId) setSelectedId(null);
+      return;
+    }
+    if (!selectedId || !filtered.some((lora) => lora.id === selectedId)) {
+      setSelectedId(filtered[0].id);
+    }
+  }, [filtered, selectedId]);
+
+  const selected = loras.find((lora) => lora.id === selectedId) ?? null;
+  const selectedInUse = selected ? activeLoras.some((active) => active.loraId === selected.id) : false;
+
+  const handleTrigger = async (trigger: string) => {
+    const token = triggerLabel(trigger);
+    const base = englishText.trim();
+    const already = base.toLowerCase().includes(token.toLowerCase());
+    if (!already) {
+      const separator = base && !/[,，.。]$/.test(base) ? ', ' : base ? ' ' : '';
+      setEnglishText(`${base}${separator}${token}`);
+    }
+    try {
+      await copyText(token);
+      toast(
+        already
+          ? `英文提示词中已有 ${token}，已复制到剪贴板。`
+          : `已把 ${token} 加入英文提示词，并复制到剪贴板。`,
+        'success',
+      );
+    } catch {
+      toast(
+        already ? `英文提示词中已有 ${token}。` : `已把 ${token} 加入英文提示词（剪贴板不可用）。`,
+        already ? 'info' : 'warning',
+      );
+    }
+  };
+
+  const handleCopyAllTriggers = async () => {
+    if (!selected || selected.triggerWords.length === 0) return;
+    const text = selected.triggerWords.map(triggerLabel).join(', ');
+    try {
+      await copyText(text);
+      toast('已复制全部触发词。', 'success');
+    } catch {
+      toast('复制失败，请手动选择触发词。', 'error');
+    }
+  };
+
   if (editing !== null) {
     return (
       <Modal
@@ -347,8 +392,8 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal
-      title="LoRA 管理"
-      subtitle="管理常用 LoRA、触发词与推荐权重；可一键添加到当前作品。"
+      title="LoRA 记事本"
+      subtitle="从左侧打开一个 LoRA 查看模型信息；点击 @触发词 会复制并加入英文提示词。"
       onClose={onClose}
       size="xl"
       headerExtra={
@@ -378,12 +423,7 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
             aria-label="搜索 LoRA"
           />
           {search ? (
-            <button
-              type="button"
-              className="search-clear"
-              onClick={() => setSearch('')}
-              aria-label="清空搜索"
-            >
+            <button type="button" className="search-clear" onClick={() => setSearch('')} aria-label="清空搜索">
               <Icon name="x" size={14} />
             </button>
           ) : null}
@@ -413,8 +453,8 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
       {loras.length === 0 ? (
         <EmptyState
           icon="layers"
-          title="LoRA 库还是空的"
-          description="添加你的常用 LoRA，记录触发词与推荐权重，之后可以一键加入提示词。"
+          title="LoRA 记事本还是空的"
+          description="添加你的常用 LoRA，记录模型信息、@触发词与推荐权重，之后可以一键加入英文提示词。"
           action={
             <Button variant="primary" icon="plus" onClick={() => setEditing('new')}>
               添加第一个 LoRA
@@ -441,36 +481,57 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
           }
         />
       ) : (
-        <div className="lora-grid">
-          {filtered.map((lora) => {
-            const inUse = activeLoras.some((active) => active.loraId === lora.id);
-            return (
-              <article className={`lora-card ${lora.favorite ? 'is-favorite' : ''}`} key={lora.id}>
-                <header className="lora-card-head">
-                  <div className="lora-card-title">
-                    <h3>{lora.name}</h3>
+        <div className="lora-notebook">
+          <aside className="lora-index" aria-label="LoRA 列表">
+            {filtered.map((lora) => (
+              <button
+                key={lora.id}
+                type="button"
+                className={`lora-index-item ${lora.id === selectedId ? 'is-active' : ''}`}
+                onClick={() => setSelectedId(lora.id)}
+              >
+                <span className="lora-index-main">
+                  <span className="lora-index-name">
+                    {lora.favorite ? <Icon name="star-filled" size={12} /> : null}
+                    {lora.name}
+                  </span>
+                  <span className="lora-index-trigger">
+                    {lora.triggerWords.length > 0 ? triggerLabel(lora.triggerWords[0]) : '无触发词'}
+                  </span>
+                </span>
+                <span className={`lora-dot ${lora.enabled ? 'is-on' : ''}`} title={lora.enabled ? '启用' : '停用'} />
+              </button>
+            ))}
+          </aside>
+
+          <section className="lora-detail" aria-label="LoRA 详情">
+            {selected ? (
+              <>
+                <header className="lora-detail-head">
+                  <div>
+                    <h3>{selected.name}</h3>
                     <div className="lora-card-badges">
-                      <Badge tone={lora.enabled ? 'success' : 'neutral'}>
-                        {lora.enabled ? '启用' : '停用'}
+                      <Badge tone={selected.enabled ? 'success' : 'neutral'}>
+                        {selected.enabled ? '启用' : '停用'}
                       </Badge>
-                      <Badge tone="outline">{lora.category || '未分类'}</Badge>
-                      <Badge tone="neutral">默认 {formatWeight(lora.defaultWeight)}</Badge>
+                      <Badge tone="outline">{selected.category || '未分类'}</Badge>
+                      <Badge tone="neutral">默认 {formatWeight(selected.defaultWeight)}</Badge>
+                      <Badge tone="outline">
+                        {selected.weightMin}–{selected.weightMax}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="lora-card-tools">
+                  <div className="lora-detail-tools">
                     <IconButton
-                      icon={lora.favorite ? 'star-filled' : 'star'}
-                      label={lora.favorite ? '取消收藏' : '收藏'}
+                      icon={selected.favorite ? 'star-filled' : 'star'}
+                      label={selected.favorite ? '取消收藏' : '收藏'}
                       size="sm"
-                      active={lora.favorite}
-                      onClick={() => toggleFavorite(lora.id)}
+                      active={selected.favorite}
+                      onClick={() => toggleFavorite(selected.id)}
                     />
-                    <IconButton
-                      icon="edit"
-                      label="编辑 LoRA"
-                      size="sm"
-                      onClick={() => setEditing(lora)}
-                    />
+                    <Button size="sm" variant="ghost" icon="edit" onClick={() => setEditing(selected)}>
+                      编辑信息
+                    </Button>
                     <IconButton
                       icon="trash"
                       label="删除 LoRA"
@@ -478,68 +539,121 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
                       onClick={() =>
                         confirmAction({
                           title: '删除这个 LoRA？',
-                          message: `「${lora.name}」会从库中删除。已经使用它的作品保留快照，不受影响。`,
+                          message: `「${selected.name}」会从库中删除。已经使用它的作品保留快照，不受影响。`,
                           confirmLabel: '删除 LoRA',
                           danger: true,
-                          onConfirm: () => deleteLora(lora.id),
+                          onConfirm: async () => {
+                            await deleteLora(selected.id);
+                            setSelectedId(null);
+                          },
                         })
                       }
                     />
                   </div>
                 </header>
 
-                <div className="lora-file-line">
-                  <Icon name="folder" size={13} />
-                  <code>{lora.file || '缺少文件名'}</code>
+                <div className="lora-detail-file">
+                  <Icon name="folder" size={14} />
+                  <code>{selected.file || '缺少文件名'}</code>
+                  {!selected.file ? <span className="lora-file-warning">成品不会生成 LoRA 语法</span> : null}
                 </div>
 
-                {lora.descCn ? <p className="lora-desc">{lora.descCn}</p> : null}
-                {lora.triggerWords.length > 0 ? (
-                  <div className="lora-triggers">
-                    {lora.triggerWords.map((trigger) => (
-                      <span key={trigger} className="trigger-chip">
-                        {trigger}
-                      </span>
-                    ))}
+                <div className="lora-detail-section">
+                  <div className="lora-detail-label">
+                    <span>触发词</span>
+                    <span className="lora-detail-hint">点击 = 复制 @触发词 并加入英文提示词</span>
                   </div>
-                ) : (
-                  <p className="lora-no-trigger">未设置触发词</p>
-                )}
-
-                <div className="lora-models">
-                  {lora.modelTypes.map((type) => (
-                    <span key={type}>{modelTypeLabel(type)}</span>
-                  ))}
+                  {selected.triggerWords.length > 0 ? (
+                    <div className="trigger-chip-list">
+                      {selected.triggerWords.map((trigger) => (
+                        <button
+                          key={trigger}
+                          type="button"
+                          className="trigger-pill"
+                          onClick={() => void handleTrigger(trigger)}
+                          title="复制并加入英文提示词"
+                        >
+                          {triggerLabel(trigger)}
+                        </button>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon="copy"
+                        onClick={() => void handleCopyAllTriggers()}
+                      >
+                        复制全部
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="lora-detail-empty">还没有触发词。点击「编辑信息」添加，例如 @dizzy。</p>
+                  )}
                 </div>
 
-                {!lora.file ? (
-                  <p className="lora-warning">
-                    <Icon name="alert" size={13} /> 未填写文件名时，成品不会生成 LoRA 语法。
-                  </p>
+                <div className="lora-detail-section">
+                  <div className="lora-detail-label">中文说明</div>
+                  <p className="lora-detail-text">{selected.descCn || '（还没有填写中文说明）'}</p>
+                </div>
+
+                {selected.descEn ? (
+                  <div className="lora-detail-section">
+                    <div className="lora-detail-label">英文说明</div>
+                    <p className="lora-detail-text">{selected.descEn}</p>
+                  </div>
                 ) : null}
 
-                <footer className="lora-card-footer">
+                {selected.notes ? (
+                  <div className="lora-detail-section">
+                    <div className="lora-detail-label">备注</div>
+                    <p className="lora-detail-text">{selected.notes}</p>
+                  </div>
+                ) : null}
+
+                <div className="lora-detail-section">
+                  <div className="lora-detail-label">适用模型</div>
+                  <div className="lora-models">
+                    {selected.modelTypes.map((type) => (
+                      <span key={type}>{modelTypeLabel(type)}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <footer className="lora-detail-footer">
                   <Button
-                    size="sm"
-                    variant={inUse ? 'soft' : 'primary'}
-                    icon={inUse ? 'check' : 'plus'}
-                    disabled={inUse}
-                    onClick={() => addActiveLora(lora.id)}
+                    variant={selectedInUse ? 'soft' : 'primary'}
+                    icon={selectedInUse ? 'check' : 'plus'}
+                    disabled={selectedInUse}
+                    onClick={() => addActiveLora(selected.id)}
                   >
-                    {inUse ? '已添加到当前' : '添加到当前'}
+                    {selectedInUse ? '已在当前作品' : '添加到当前作品'}
                   </Button>
+                  {selectedInUse ? (
+                    <Button
+                      variant="ghost"
+                      icon="minus"
+                      onClick={() => {
+                        const index = activeLoras.findIndex((active) => active.loraId === selected.id);
+                        if (index >= 0) removeActiveLora(index);
+                      }}
+                    >
+                      从当前作品移除
+                    </Button>
+                  ) : null}
+                  <span className="meta-spacer" />
                   <label className="mini-enable">
                     <input
                       type="checkbox"
-                      checked={lora.enabled}
-                      onChange={(event) => setLoraEnabled(lora.id, event.target.checked)}
+                      checked={selected.enabled}
+                      onChange={(event) => setLoraEnabled(selected.id, event.target.checked)}
                     />
-                    启用
+                    启用这个 LoRA
                   </label>
                 </footer>
-              </article>
-            );
-          })}
+              </>
+            ) : (
+              <EmptyState icon="layers" title="选择一个 LoRA" description="从左侧列表点击即可查看模型信息。" />
+            )}
+          </section>
         </div>
       )}
     </Modal>

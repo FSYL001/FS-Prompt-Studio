@@ -29,6 +29,7 @@ try {
   await page.goto(BASE_URL, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: '知道了' }).click().catch(() => {});
   const draftInput = page.getByRole('textbox', { name: '中文草稿' });
+  const zhInput = page.getByRole('textbox', { name: '中文翻译' });
   const englishInput = page.getByRole('textbox', { name: '英文提示词' });
 
   const draft = '一个白发女孩，穿着黑色连衣裙';
@@ -38,6 +39,7 @@ try {
   const errorText = await page.locator('.inline-error').innerText();
   if (!/API Key|密钥/i.test(errorText)) throw new Error(`错误提示不应是技术报错：${errorText}`);
   if ((await draftInput.inputValue()) !== draft) throw new Error('翻译失败后草稿被修改');
+  if ((await zhInput.inputValue()) !== draft) throw new Error('翻译失败后中文翻译框被修改');
   if ((await englishInput.inputValue()).trim() !== '') throw new Error('翻译失败却写入了英文');
   await page.screenshot({ path: 'artifacts/30-translate-failure.png' });
 

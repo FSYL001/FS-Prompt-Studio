@@ -12,10 +12,56 @@ export function GeneralSettings() {
   const choosePreset = useAppStore((state) => state.choosePreset);
   const setParams = useAppStore((state) => state.setParams);
   const setTheme = useAppStore((state) => state.setTheme);
+  const toast = useAppStore((state) => state.toast);
   const preset = getPreset(presetId);
+
+  const openGenerationStudio = () => {
+    const raw = (settings.generationUrl || '').trim() || 'http://127.0.0.1:8188/';
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        toast('生图地址只支持 http:// 或 https://。', 'error');
+        return;
+      }
+      window.open(url.toString(), '_blank', 'noopener,noreferrer');
+    } catch {
+      toast('生图地址格式不正确，请填写完整的 http:// 或 https:// 地址。', 'error');
+    }
+  };
 
   return (
     <div className="settings-section">
+      <SectionLabel hint="默认 ComfyUI: http://127.0.0.1:8188/">生图工作台</SectionLabel>
+      <div className="settings-row">
+        <Field
+          label="生图页面地址"
+          hint="顶部「前往生图」按钮会在新标签页打开这个地址，可改成你自己的 ComfyUI / WebUI 地址。"
+        >
+          <input
+            className="input"
+            value={settings.generationUrl}
+            onChange={(event) => updateSettings({ generationUrl: event.target.value })}
+            placeholder="http://127.0.0.1:8188/"
+            spellCheck={false}
+          />
+        </Field>
+        <Field label="快捷操作" hint="地址会在浏览器新标签页打开。">
+          <div className="settings-inline-actions settings-inline-tight">
+            <Button size="sm" variant="secondary" icon="external" onClick={openGenerationStudio}>
+              打开生图页面
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="refresh"
+              onClick={() => updateSettings({ generationUrl: 'http://127.0.0.1:8188/' })}
+            >
+              恢复默认
+            </Button>
+          </div>
+        </Field>
+      </div>
+
       <SectionLabel hint="自动保存">外观</SectionLabel>
       <div className="settings-row">
         <Field label="主题">

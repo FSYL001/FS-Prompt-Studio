@@ -6,7 +6,7 @@ import { ServiceBanner } from './components/ServiceBanner';
 import { Onboarding } from './components/Onboarding';
 import { DraftPanel } from './components/DraftPanel';
 import { TranslateBar } from './components/TranslateBar';
-import { EnglishPanel } from './components/EnglishPanel';
+import { TranslationPanel } from './components/TranslationPanel';
 import { ProductsPanel } from './components/ProductsPanel';
 import { ActiveLorasPanel, OutputQuickPanel, PrivacyCard } from './components/ActiveLorasPanel';
 import { HistoryModal } from './components/HistoryModal';
@@ -118,7 +118,7 @@ export default function App() {
             <div className="editor-column">
               <DraftPanel />
               <TranslateBar />
-              <EnglishPanel />
+              <TranslationPanel />
               <ProductsPanel />
             </div>
             <aside className="side-column" aria-label="辅助面板">
@@ -131,7 +131,7 @@ export default function App() {
 
         <div className="footer-note">
           <span>
-            Prompt Studio · v1.0.0 · 数据保存在本地
+            Prompt Studio · v1.1.0 · 数据保存在本地
             {serverConfig ? ` · 翻译：${serverConfig.isMock ? '模拟模式' : serverConfig.label}` : ''}
           </span>
           <button

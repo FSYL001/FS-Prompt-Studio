@@ -166,6 +166,7 @@ export type WorkflowTemplate = z.infer<typeof WorkflowTemplateSchema>;
 export const SettingsSchema = z.object({
   id: z.string().default('settings:current'),
   theme: z.enum(THEMES).default('system'),
+  generationUrl: z.string().max(2000).default('http://127.0.0.1:8188/'),
   presetId: z.enum(PRESET_IDS).default('sdxl'),
   output: OutputConfigSchema.default({}),
   translateMode: z.enum(TRANSLATE_MODES).default('faithful'),
@@ -190,6 +191,7 @@ export type Settings = z.infer<typeof SettingsSchema>;
 export const WorkspaceSchema = z.object({
   id: z.string().default('workspace:current'),
   draftText: z.string().max(100000).default(''),
+  translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
@@ -205,6 +207,7 @@ export type Workspace = z.infer<typeof WorkspaceSchema>;
 
 export const WorkspaceSnapshotSchema = z.object({
   draftText: z.string().max(100000).default(''),
+  translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
@@ -223,6 +226,7 @@ export const ProductSchema = z.object({
   negative: z.string().max(100000).default(''),
   final: z.string().max(120000).default(''),
   draftText: z.string().max(100000).default(''),
+  translationZhText: z.string().max(100000).default(''),
   englishText: z.string().max(100000).default(''),
   negativeText: z.string().max(100000).default(''),
   alignment: AlignmentSchema.nullable().default(null),
@@ -283,6 +287,17 @@ export function safeParseSettings(raw: unknown): Settings {
 
 export function safeParseWorkspace(raw: unknown): Workspace {
   const parsed = WorkspaceSchema.safeParse(raw);
-  if (parsed.success) return parsed.data;
-  return DEFAULT_WORKSPACE;
+  if (!parsed.success) return DEFAULT_WORKSPACE;
+  const workspace = parsed.data;
+  // 兼容旧版本：旧草稿没有独立的中文翻译框，用草稿内容回填，避免用户内容“消失”。
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    !('translationZhText' in raw) &&
+    workspace.draftText &&
+    !workspace.translationZhText
+  ) {
+    return { ...workspace, translationZhText: workspace.draftText };
+  }
+  return workspace;
 }

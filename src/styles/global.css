@@ -4494,7 +4494,18 @@ body.modal-open .toast-viewport {
   }
 
   .toolbar-btn {
-    padding: 0 6px;
+    padding: 0 5px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+
+  .toolbar-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .studio-btn {
+    padding: 0 5px;
   }
 
   .negative-meta {

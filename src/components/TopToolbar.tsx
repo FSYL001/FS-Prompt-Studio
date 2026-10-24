@@ -42,6 +42,8 @@ export function TopToolbar() {
   const theme = useAppStore((state) => state.settings.theme);
   const setTheme = useAppStore((state) => state.setTheme);
   const activeLoras = useAppStore((state) => state.workspace.activeLoras.length);
+  const generationUrl = useAppStore((state) => state.settings.generationUrl);
+  const toast = useAppStore((state) => state.toast);
   const [systemDark, setSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
   );
@@ -54,6 +56,22 @@ export function TopToolbar() {
   }, []);
 
   const isDark = theme === 'dark' || (theme === 'system' && systemDark);
+
+  const openGenerationStudio = () => {
+    const raw = (generationUrl || '').trim() || 'http://127.0.0.1:8188/';
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      toast('生图地址格式不正确，请在设置中填写完整的 http:// 或 https:// 地址。', 'error');
+      return;
+    }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      toast('生图地址只支持 http:// 或 https://。', 'error');
+      return;
+    }
+    window.open(url.toString(), '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <header className="topbar">
@@ -103,6 +121,16 @@ export function TopToolbar() {
           >
             LoRA
             {activeLoras > 0 ? <span className="nav-count">{activeLoras}</span> : null}
+          </Button>
+          <Button
+            variant="soft"
+            icon="external"
+            className="toolbar-btn studio-btn"
+            onClick={openGenerationStudio}
+            title={`前往生图：${generationUrl || 'http://127.0.0.1:8188/'}`}
+          >
+            <span className="studio-full">前往生图</span>
+            <span className="studio-short">生图</span>
           </Button>
           <Button
             variant="ghost"

@@ -7,6 +7,7 @@ import { useAppStore } from '../store/appStore';
 export function useAutosave() {
   const hydrated = useAppStore((state) => state.hydrated);
   const draftText = useAppStore((state) => state.workspace.draftText);
+  const translationZhText = useAppStore((state) => state.workspace.translationZhText);
   const englishText = useAppStore((state) => state.workspace.englishText);
   const negativeText = useAppStore((state) => state.workspace.negativeText);
   const alignment = useAppStore((state) => state.workspace.alignment);
@@ -38,7 +39,7 @@ export function useAutosave() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [hydrated, draftText, englishText, negativeText, alignment, segments, segmentsMode, activeLoras, params, presetId, notes]);
+  }, [hydrated, draftText, translationZhText, englishText, negativeText, alignment, segments, segmentsMode, activeLoras, params, presetId, notes]);
 
   // 页面隐藏 / 刷新前再尝试落盘一次，减少“最后 400ms 编辑丢失”的窗口。
   useEffect(() => {

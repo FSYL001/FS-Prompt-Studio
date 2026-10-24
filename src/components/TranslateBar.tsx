@@ -4,6 +4,7 @@ import { Button, Segmented } from './ui/primitives';
 
 export function TranslateBar() {
   const draftText = useAppStore((state) => state.workspace.draftText);
+  const translationZhText = useAppStore((state) => state.workspace.translationZhText);
   const englishText = useAppStore((state) => state.workspace.englishText);
   const mode = useAppStore((state) => state.settings.translateMode);
   const setMode = useAppStore((state) => state.setTranslateMode);
@@ -15,16 +16,20 @@ export function TranslateBar() {
   const restorePre = useAppStore((state) => state.restorePreTranslation);
 
   const hasDraft = draftText.trim().length > 0;
+  const hasZh = translationZhText.trim().length > 0;
   const hasEnglish = englishText.trim().length > 0;
-  const both = hasDraft && hasEnglish;
+  const both = hasZh && hasEnglish;
+  const onlyDraft = !hasZh && !hasEnglish && hasDraft;
 
   const directionLabel = both
     ? '两侧都有内容 · 翻译前会询问方向'
-    : hasDraft
+    : hasZh
       ? '中文 → 英文'
       : hasEnglish
         ? '英文 → 中文'
-        : '等待输入';
+        : hasDraft
+          ? '草稿 → 中文翻译框'
+          : '等待输入';
 
   return (
     <section className={`translate-bar ${translateBusy ? 'is-busy' : ''}`} aria-label="翻译操作">
@@ -40,7 +45,9 @@ export function TranslateBar() {
           <div className="translate-sub">
             {both
               ? '不会盲目覆盖：请选择中文→英文或英文→中文，翻译前的内容可以恢复。'
-              : '自动识别语言并选择方向；翻译失败不会丢失原文。'}
+              : onlyDraft
+                ? '翻译时会把草稿填入中文翻译框，然后生成英文；草稿本身保持不变。'
+                : '翻译只作用于下面的中文 / 英文两个框，草稿不会被改动；失败不会丢失原文。'}
             {serverConfig ? (
               <button
                 type="button"
@@ -72,9 +79,9 @@ export function TranslateBar() {
             <Button
               size="sm"
               variant="ghost"
-              disabled={!hasDraft || translateBusy}
+              disabled={(!hasZh && !hasDraft) || translateBusy}
               onClick={() => requestTranslate('zh-en')}
-              title="把中文草稿翻译成英文"
+              title={hasZh ? '把中文翻译框翻译成英文' : '把草稿填入中文框并翻译'}
             >
               中→英
             </Button>
@@ -83,7 +90,7 @@ export function TranslateBar() {
               variant="ghost"
               disabled={!hasEnglish || translateBusy}
               onClick={() => requestTranslate('en-zh')}
-              title="把英文提示词翻译回中文"
+              title="把英文框翻译回中文翻译框"
             >
               英→中
             </Button>
@@ -93,10 +100,10 @@ export function TranslateBar() {
             icon="translate"
             loading={translateBusy}
             onClick={() => requestTranslate()}
-            disabled={!hasDraft && !hasEnglish}
+            disabled={!hasZh && !hasEnglish && !hasDraft}
             title="翻译（Ctrl/Cmd + Enter）"
           >
-            {translateBusy ? '翻译中…' : both ? '选择方向翻译' : '翻译'}
+            {translateBusy ? '翻译中…' : both ? '选择方向翻译' : onlyDraft ? '翻译草稿' : '翻译'}
           </Button>
           <button
             type="button"

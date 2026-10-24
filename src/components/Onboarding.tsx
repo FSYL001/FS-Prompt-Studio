@@ -20,15 +20,15 @@ export function Onboarding() {
         <ol className="onboarding-steps">
           <li>
             <strong>写草稿</strong>
-            <span>用中文描述想生成的画面，支持中英混合。</span>
+            <span>草稿只是独立的一个框，用来记录想法。</span>
           </li>
           <li>
-            <strong>点翻译</strong>
-            <span>生成英文提示词，可开启「对照翻译」逐段检查。</span>
+            <strong>翻译</strong>
+            <span>翻译区有中文 / 英文两个框，可对照、可继续修改。</span>
           </li>
           <li>
-            <strong>生成成品</strong>
-            <span>选好 LoRA 与权重后生成，自动保存到历史记录。</span>
+            <strong>加权与成品</strong>
+            <span>点单词加权、点 @触发词加 LoRA，再生成成品。</span>
           </li>
         </ol>
         <p className="onboarding-note">

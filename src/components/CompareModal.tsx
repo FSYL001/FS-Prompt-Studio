@@ -7,12 +7,14 @@ import { useAppStore } from '../store/appStore';
 import { Modal } from './ui/Modal';
 import { Button, EmptyState, Segmented } from './ui/primitives';
 
-type CompareTab = 'english' | 'draft' | 'negative' | 'meta';
+type CompareTab = 'english' | 'translation' | 'draft' | 'negative' | 'meta';
 
 function fieldValue(entry: HistoryEntry, tab: CompareTab): string {
   switch (tab) {
     case 'draft':
       return entry.snapshot.draftText;
+    case 'translation':
+      return entry.snapshot.translationZhText;
     case 'negative':
       return entry.snapshot.negativeText;
     case 'meta':
@@ -180,6 +182,7 @@ export function CompareModal({
           onChange={setTab}
           options={[
             { value: 'english', label: '英文提示词' },
+            { value: 'translation', label: '中文翻译' },
             { value: 'draft', label: '中文草稿' },
             { value: 'negative', label: '负向提示词' },
             { value: 'meta', label: '参数与 LoRA' },

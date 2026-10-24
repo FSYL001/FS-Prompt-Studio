@@ -192,6 +192,7 @@ export interface CreateProductInput extends PromptAssemblyInput {
   name?: string;
   assembly?: PromptAssembly;
   alignment?: Alignment | null;
+  translationZhText?: string;
   id?: string;
   now?: string;
 }
@@ -207,6 +208,7 @@ export function createProduct(input: CreateProductInput): Product {
     negative: assembly.negative,
     final: assembly.final,
     draftText: input.draftText,
+    translationZhText: input.translationZhText ?? '',
     englishText: input.englishText,
     negativeText: input.negativeText,
     alignment: input.alignment ?? null,
@@ -259,6 +261,11 @@ export function buildTxtExport(product: Product, includeChineseComments = true):
     lines.push('--- 中文草稿（仅供参考，不是提示词） ---');
     lines.push(product.draftText.trim() || '（无）');
     lines.push('');
+    if (product.translationZhText.trim() && product.translationZhText.trim() !== product.draftText.trim()) {
+      lines.push('--- 中文翻译原文 ---');
+      lines.push(product.translationZhText.trim());
+      lines.push('');
+    }
     if (product.segments.length > 0) {
       lines.push('--- 片段 ---');
       for (const seg of product.segments) {
