@@ -9,6 +9,7 @@ import { TranslateBar } from './components/TranslateBar';
 import { TranslationPanel } from './components/TranslationPanel';
 import { ProductsPanel } from './components/ProductsPanel';
 import { ActiveLorasPanel, OutputQuickPanel, PrivacyCard } from './components/ActiveLorasPanel';
+import { QuickTranslateCard } from './components/QuickTranslateCard';
 import { HistoryModal } from './components/HistoryModal';
 import { LoraLibraryModal } from './components/LoraLibraryModal';
 import { SettingsModal } from './components/settings/SettingsModal';
@@ -123,6 +124,7 @@ export default function App() {
             </div>
             <aside className="side-column" aria-label="辅助面板">
               <ActiveLorasPanel />
+              <QuickTranslateCard />
               <OutputQuickPanel />
               <PrivacyCard />
             </aside>
@@ -131,7 +133,7 @@ export default function App() {
 
         <div className="footer-note">
           <span>
-            Prompt Studio · v1.1.0 · 数据保存在本地
+            Prompt Studio · v1.2.0 · 数据保存在本地
             {serverConfig ? ` · 翻译：${serverConfig.isMock ? '模拟模式' : serverConfig.label}` : ''}
           </span>
           <button

@@ -81,6 +81,19 @@ function ActiveLoraItem({
     toast(`已添加 ${token}（触发词）到英文提示词。`, 'success');
   };
 
+  const addPrefix = () => {
+    const prefix = (active.promptPrefix ?? '').trim();
+    if (!prefix) return;
+    const base = englishText.trim();
+    if (base.toLowerCase().startsWith(prefix.toLowerCase())) {
+      toast('英文提示词已经以这个推荐前缀开头。', 'info');
+      return;
+    }
+    const separator = /[,，.。]$/.test(prefix) ? ' ' : ', ';
+    setEnglishText(`${prefix}${separator}${base}`.trim());
+    toast('已把推荐前缀放到英文提示词开头。', 'success');
+  };
+
   return (
     <li
       className={`active-lora ${dragIndex === index ? 'is-dragging' : ''}`}
@@ -203,6 +216,18 @@ function ActiveLoraItem({
               @{trigger}
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {(active.promptPrefix ?? '').trim() ? (
+        <div className="active-lora-prefix">
+          <div className="active-lora-prefix-head">
+            <span>推荐前缀</span>
+            <button type="button" className="link-button" onClick={addPrefix}>
+              加入英文开头
+            </button>
+          </div>
+          <code>{active.promptPrefix}</code>
         </div>
       ) : null}
 

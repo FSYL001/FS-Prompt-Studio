@@ -1,7 +1,7 @@
 {
   "name": "prompt-studio",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Prompt Studio - 中文优先的 AI 生图提示词编辑器（本地优先 + 可配置翻译服务）",
   "scripts": {

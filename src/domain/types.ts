@@ -89,6 +89,7 @@ export const ProductLoraSchema = z.object({
   file: z.string().max(400).default(''),
   weight: z.number().min(-10).max(10).default(0.8),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
+  promptPrefix: z.string().max(2000).default(''),
   enabled: z.boolean().default(true),
 });
 export type ProductLora = z.infer<typeof ProductLoraSchema>;
@@ -126,6 +127,7 @@ export const LoraSchema = z.object({
   name: z.string().min(1).max(160),
   file: z.string().max(400).default(''),
   triggerWords: z.array(z.string().max(200)).max(50).default([]),
+  promptPrefix: z.string().max(2000).default(''),
   descCn: z.string().max(4000).default(''),
   descEn: z.string().max(4000).default(''),
   defaultWeight: z.number().min(-10).max(10).default(0.8),

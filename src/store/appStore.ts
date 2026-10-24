@@ -20,6 +20,7 @@ import {
   type WorkflowTemplate,
 } from '../domain/types';
 import { newId, nowIso } from '../domain/id';
+import { collectLoraTerms } from '../domain/loraTerms';
 import { hasCJK, splitPromptSegments } from '../domain/promptParse';
 import { composeFromSegments } from '../domain/promptParse';
 import { assemblePrompts, createProduct } from '../domain/product';
@@ -708,6 +709,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         direction,
         mode: settings.translateMode,
         dictionary: settings.dictionary,
+        protectedTerms: collectLoraTerms(state.loras, workspace.activeLoras),
       });
 
       if (outcome.noop) {
@@ -1038,6 +1040,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         text: segment.text,
         mode: state.settings.translateMode,
         dictionary: state.settings.dictionary,
+        protectedTerms: collectLoraTerms(state.loras, state.workspace.activeLoras),
       });
       get().setSegmentTranslation(id, result.text);
       get().toast(
@@ -1068,6 +1071,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
           text: current.text,
           mode: get().settings.translateMode,
           dictionary: get().settings.dictionary,
+          protectedTerms: collectLoraTerms(get().loras, get().workspace.activeLoras),
         });
         get().setSegmentTranslation(segment.id, result.text);
       } catch {
@@ -1136,6 +1140,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       file: lora.file,
       weight: Math.min(lora.weightMax, Math.max(lora.weightMin, lora.defaultWeight)),
       triggerWords: [...lora.triggerWords],
+      promptPrefix: lora.promptPrefix,
       enabled: lora.enabled,
     };
     set({

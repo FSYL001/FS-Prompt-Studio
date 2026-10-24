@@ -40,6 +40,7 @@ export interface TranslateRequestInput {
   direction: Direction;
   mode?: TranslateMode;
   dictionary?: DictionaryEntry[];
+  protectedTerms?: string[];
   config?: TranslateConfig;
 }
 
@@ -75,6 +76,7 @@ function cacheKey(
   mode: TranslateMode,
   dictionary: DictionaryEntry[],
   text: string,
+  protectedTerms: string[] = [],
 ): string {
   const dictSignature = dictionary
     .map((d) => `${d.cn}=>${d.en}`)
@@ -89,6 +91,7 @@ function cacheKey(
         direction,
         mode,
         dictSignature,
+        protectedTerms,
         text,
       }),
     )
@@ -177,12 +180,19 @@ export async function translateSegments(input: TranslateRequestInput): Promise<T
       results.set(segment.id, { id: segment.id, text: '', cached: false, skipped: true });
       return;
     }
-    const guarded = protectPromptSyntax(text);
+    const guarded = protectPromptSyntax(text, input.protectedTerms ?? []);
     if (!sourceHasTargetLanguage(guarded.text, input.direction)) {
       results.set(segment.id, { id: segment.id, text, cached: false, skipped: true });
       return;
     }
-    const key = cacheKey(config, input.direction, mode, dictionary, guarded.text);
+    const key = cacheKey(
+      config,
+      input.direction,
+      mode,
+      dictionary,
+      guarded.text,
+      input.protectedTerms ?? [],
+    );
     const cachedValue = cacheGet(key);
     if (cachedValue !== undefined) {
       results.set(segment.id, { id: segment.id, text: cachedValue, cached: true, skipped: false });

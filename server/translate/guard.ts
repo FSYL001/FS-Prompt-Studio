@@ -18,7 +18,7 @@ function placeholder(index: number): string {
   return `${PLACEHOLDER_PREFIX}${index}${PLACEHOLDER_SUFFIX}`;
 }
 
-export function protectPromptSyntax(text: string): GuardResult {
+export function protectPromptSyntax(text: string, extraTerms: string[] = []): GuardResult {
   const tokens: string[] = [];
   let output = text;
 
@@ -36,6 +36,27 @@ export function protectPromptSyntax(text: string): GuardResult {
 
   // 3. 括号权重语法里的数字部分，例如 (long hair:1.2)
   output = output.replace(/:\s*-?\d+(?:\.\d+)?(?=\s*\))/g, (match) => addToken(match));
+
+  // 4. LoRA 触发词：@dizzy、@watercolor_style 等整体保护，绝不翻译
+  output = output.replace(/@[\p{L}\p{N}_.-]+/gu, (match) => addToken(match));
+
+  // 5. 已知触发词（可能不带 @）：按词组边界保护，避免不小心翻译成普通词义
+  const terms = [
+    ...new Set(
+      extraTerms
+        .map((term) => term.trim().replace(/^@+/, ''))
+        .filter((term) => term.length > 0 && term.length <= 200 && /[\p{L}\p{N}]/u.test(term)),
+    ),
+  ].sort((a, b) => b.length - a.length);
+
+  for (const term of terms) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`,
+      'giu',
+    );
+    output = output.replace(pattern, (match) => addToken(match));
+  }
 
   return { text: output, tokens };
 }

@@ -27,6 +27,7 @@ function makeLora(name = 'Watercolor', id = 'lora_test'): Lora {
     name,
     file: 'watercolor.safetensors',
     triggerWords: ['watercolor_style'],
+    promptPrefix: 'masterpiece, best quality',
     descCn: '水彩风格',
     descEn: 'watercolor style',
     defaultWeight: 0.8,

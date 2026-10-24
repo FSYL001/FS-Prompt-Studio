@@ -15,7 +15,7 @@ export function AboutSettings() {
         </span>
         <div>
           <h3>Prompt Studio</h3>
-          <p>中文优先的 AI 生图提示词编辑器 · v1.1.0</p>
+          <p>中文优先的 AI 生图提示词编辑器 · v1.2.0</p>
         </div>
         <Badge tone="accent">本地优先</Badge>
       </div>
@@ -28,9 +28,11 @@ export function AboutSettings() {
       <SectionLabel>核心能力</SectionLabel>
       <ul className="settings-list">
         <li>草稿独立一个框；翻译区中文 / 英文两个框，双向翻译与真实分段对照。</li>
+        <li>翻译自动保护 @触发词（如 @dizzy）与 LoRA 库触发词，不会翻成普通词义。</li>
         <li>片段模式把单词或单句框出来，打开加权/降权后点击即写入 ( ) / [ ]。</li>
-        <li>LoRA 记事本：查看模型信息，点击 @触发词 复制并加入英文提示词。</li>
-        <li>成品、历史版本、版本对比、恢复与 TXT / JSON / ComfyUI 工作流导出。</li>
+        <li>负面提示词可一键复制英文翻译，并随成品、历史与备份一起保存。</li>
+        <li>LoRA 记事本：查看模型信息、推荐提示词前缀，点击 @触发词 复制并加入英文提示词。</li>
+        <li>右侧小翻译可随时输入文字翻译并复制；成品、历史、TXT / JSON / ComfyUI 工作流导出。</li>
         <li>本地数据备份、导入校验、合并或替换导入、一键清除。</li>
         <li>顶部「前往生图」可打开自定义 ComfyUI 地址；附带 Windows 双击启动脚本。</li>
       </ul>
@@ -50,6 +52,7 @@ export function AboutSettings() {
         <li>免费 Google 公共接口为非官方通道，可能限流或不可用；正式使用请配置自己的 API。</li>
         <li>翻译对齐以请求片段为单位，短标签可逐词对应，长句按整句对照，不做语义分词。</li>
         <li>片段加权按钮只增加/移除一层 () / []，不自动填写数字权重。</li>
+        <li>LoRA 推荐前缀需要手动「加入英文开头」，不会自动改写译文。</li>
         <li>自定义词典目前只注入 OpenAI 兼容接口；Google 公共接口与 DeepL 不应用术语表。</li>
         <li>ComfyUI 工作流导出只支持 API 格式，并要求手动配置节点映射；不是所有工作流都兼容。</li>
         <li>FLUX / SDXL / SD1.5 对权重语法与 LoRA 文本的支持依赖具体前端，预设只提供默认输出习惯。</li>

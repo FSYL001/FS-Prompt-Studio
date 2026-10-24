@@ -43,6 +43,7 @@ export async function translatePromptText(input: {
   direction: Direction;
   mode: TranslateMode;
   dictionary: DictionaryEntry[];
+  protectedTerms?: string[];
 }): Promise<TranslationOutcome> {
   const tokens = tokenizePrompt(input.sourceText, { splitSentences: true });
   const indexesToTranslate: number[] = [];
@@ -98,6 +99,7 @@ export async function translatePromptText(input: {
       direction: input.direction,
       mode: input.mode,
       dictionary: input.dictionary,
+      protectedTerms: input.protectedTerms,
     });
     provider = response.provider;
     providerLabel = response.providerLabel;
@@ -143,6 +145,7 @@ export async function translateSingleText(input: {
   text: string;
   mode: TranslateMode;
   dictionary: DictionaryEntry[];
+  protectedTerms?: string[];
 }): Promise<{ text: string; direction: Direction; mock: boolean; providerLabel: string }> {
   const direction: Direction = hasCJK(input.text) ? 'zh-en' : 'en-zh';
   if (direction === 'zh-en' && !hasCJK(input.text)) {
@@ -156,6 +159,7 @@ export async function translateSingleText(input: {
     direction,
     mode: input.mode,
     dictionary: input.dictionary,
+    protectedTerms: input.protectedTerms,
   });
   const result = response.results[0];
   if (!result) throw new Error('翻译服务没有返回结果。');

@@ -147,6 +147,7 @@ export async function translateBatch(options: {
   direction: Direction;
   mode: TranslateMode;
   dictionary: DictionaryEntry[];
+  protectedTerms?: string[];
 }): Promise<TranslateApiResult> {
   return request<TranslateApiResult>(
     '/api/translate',
@@ -158,6 +159,7 @@ export async function translateBatch(options: {
         direction: options.direction,
         mode: options.mode,
         dictionary: options.dictionary,
+        protectedTerms: options.protectedTerms ?? [],
       }),
     },
     90000,

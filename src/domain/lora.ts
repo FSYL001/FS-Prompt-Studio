@@ -78,6 +78,7 @@ export function productLoraFromDefinition(lora: Lora, weight?: number): ProductL
     file: lora.file,
     weight: weight ?? clampWeight(lora.defaultWeight, lora),
     triggerWords: [...lora.triggerWords],
+    promptPrefix: lora.promptPrefix,
     enabled: lora.enabled,
   };
 }

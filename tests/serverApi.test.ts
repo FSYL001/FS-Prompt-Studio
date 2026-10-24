@@ -72,6 +72,19 @@ describe('后端 API', () => {
     expect(result.body.results[1].text).toBe('long hair');
   });
 
+  it('翻译接口保护 LoRA 触发词', async () => {
+    const result = await api('/api/translate', {
+      method: 'POST',
+      body: JSON.stringify({
+        segments: [{ id: 'trigger', text: '@dizzy, 一个白发女孩' }],
+        direction: 'zh-en',
+        protectedTerms: ['dizzy'],
+      }),
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.results[0].text).toContain('@dizzy');
+  });
+
   it('参数错误返回中文提示', async () => {
     const result = await api('/api/translate', {
       method: 'POST',

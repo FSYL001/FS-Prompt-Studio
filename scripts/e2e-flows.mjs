@@ -31,12 +31,15 @@ async function shot(name) {
   await page.screenshot({ path: `artifacts/${name}.png`, animations: 'disabled' });
 }
 
-async function addLora(name, file, trigger) {
+async function addLora(name, file, trigger, prefix = '') {
   await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
   await dialog.getByRole('button', { name: '添加 LoRA' }).click();
   await page.getByPlaceholder('例如：清新水彩风').fill(name);
   await page.getByPlaceholder('style_watercolor.safetensors').fill(file);
   await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill(trigger);
+  if (prefix) {
+    await page.getByPlaceholder('masterpiece, best quality, highly detailed').fill(prefix);
+  }
   await page.getByRole('button', { name: '保存 LoRA' }).click();
   await dialog.locator('.lora-index-item', { hasText: name }).click();
   await dialog.getByRole('button', { name: '添加到当前作品' }).click();
@@ -72,8 +75,19 @@ try {
   await shot('11-segments');
 
   // 多个 LoRA 与不同权重
-  await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style');
+  await addLora('水彩风格', 'watercolor_v1.safetensors', 'watercolor_style', 'masterpiece, best quality');
   await addLora('光影增强', 'lighting_v2.safetensors', 'cinematic_light');
+
+  // 推荐提示词前缀：查看并置顶加入英文
+  await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
+  await dialog.locator('.lora-index-item', { hasText: '水彩风格' }).click();
+  assert((await dialog.locator('.lora-prefix').innerText()).includes('masterpiece'), 'LoRA 详情应显示推荐前缀');
+  await dialog.getByRole('button', { name: '加入英文开头' }).click();
+  await dialog.getByRole('button', { name: '关闭' }).last().click();
+  assert(
+    (await englishInput.inputValue()).startsWith('masterpiece, best quality'),
+    '推荐前缀应加入英文提示词开头',
+  );
 
   // 打开 LoRA 记事本，点击 @触发词 加入英文提示词
   await page.locator('.toolbar-btn', { hasText: 'LoRA' }).click();
@@ -89,11 +103,41 @@ try {
   await page.getByRole('spinbutton', { name: '光影增强 权重' }).fill('1.1');
   await page.getByRole('spinbutton', { name: '光影增强 权重' }).blur();
   assert((await page.locator('.active-lora').count()) === 2, '应同时使用两个 LoRA');
+  assert(
+    (await page.locator('.active-lora-prefix').first().innerText()).includes('masterpiece'),
+    '当前 LoRA 面板应显示推荐前缀',
+  );
+
+  // 右侧小翻译：@触发词原样保留，可复制
+  const quick = page.locator('.quick-translate-card');
+  await quick.getByRole('textbox', { name: '小翻译输入' }).fill('@dizzy 一个白发女孩');
+  await quick.getByRole('button', { name: '翻译' }).click();
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector('textarea[aria-label="小翻译结果"]');
+      return el && el.value.trim().length > 0;
+    },
+    undefined,
+    { timeout: 45000 },
+  );
+  const quickResult = await quick.getByRole('textbox', { name: '小翻译结果' }).inputValue();
+  assert(quickResult.includes('@dizzy'), '小翻译也必须保留 @dizzy 触发词');
+  await shot('16-quick-translate');
+
+  // 负面提示词：复制英文翻译，并随成品保存
+  await page.getByRole('button', { name: '复制英文翻译' }).click();
+  const negativeInput = page.getByRole('textbox', { name: '负面提示词' });
+  const negativeValue = await negativeInput.inputValue();
+  assert(negativeValue.includes('@watercolor_style'), '复制英文翻译后负面提示词应包含触发词');
+  assert(negativeValue.includes('masterpiece'), '负面提示词应复制完整英文前缀');
+  await shot('17-negative-prompt');
 
   // 生成多 LoRA 成品
   await page.locator('.products-card .btn-primary').click();
   await page.locator('.product-card').first().waitFor();
   assert((await page.locator('.product-card .lora-chip').count()) === 2, '成品应包含两个 LoRA');
+  const productNegative = await page.locator('.product-card .product-prompt-block.is-negative').innerText();
+  assert(productNegative.includes('@watercolor_style'), '成品应保存负面提示词');
   await shot('12-multi-lora');
 
   // 编辑成品

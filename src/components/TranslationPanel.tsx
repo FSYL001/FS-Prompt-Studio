@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { detectLanguage, hasCJK } from '../domain/promptParse';
+import { collectLoraTerms } from '../domain/loraTerms';
 import { copyText } from '../domain/id';
 import { translateSingleText } from '../services/translation';
 import { useAppStore } from '../store/appStore';
@@ -24,6 +25,8 @@ export function TranslationPanel() {
   const englishText = useAppStore((state) => state.workspace.englishText);
   const negativeText = useAppStore((state) => state.workspace.negativeText);
   const alignment = useAppStore((state) => state.workspace.alignment);
+  const activeLoras = useAppStore((state) => state.workspace.activeLoras);
+  const loras = useAppStore((state) => state.loras);
   const settings = useAppStore((state) => state.settings);
   const alignmentVisible = useAppStore((state) => state.alignmentVisible);
   const toggleAlignment = useAppStore((state) => state.toggleAlignment);
@@ -99,6 +102,7 @@ export function TranslationPanel() {
         text: negativeText,
         mode: settings.translateMode,
         dictionary: settings.dictionary,
+        protectedTerms: collectLoraTerms(loras, activeLoras),
       });
       setNegativeText(result.text);
       toast(
@@ -110,6 +114,27 @@ export function TranslationPanel() {
     } finally {
       setNegativeBusy(false);
     }
+  };
+
+  const copyTranslationToNegative = () => {
+    if (!englishText.trim()) {
+      toast('英文翻译还是空的，没有内容可以复制。', 'info');
+      return;
+    }
+    const apply = () => {
+      setNegativeText(englishText);
+      toast('已把英文翻译复制到负面提示词，成品会一起保存。', 'success');
+    };
+    if (negativeText.trim() && negativeText !== englishText) {
+      confirmAction({
+        title: '替换现有负面提示词？',
+        message: '当前负面提示词会被英文翻译覆盖，此操作可以用撤销恢复。',
+        confirmLabel: '复制并替换',
+        onConfirm: apply,
+      });
+      return;
+    }
+    apply();
   };
 
   const retryDirection =
@@ -297,61 +322,82 @@ export function TranslationPanel() {
         />
       ) : null}
 
-      <details className="negative-block" open={negativeText.trim().length > 0}>
-        <summary>
-          <span className="negative-title">
+      <section className="negative-panel">
+        <header className="negative-panel-head">
+          <div className="negative-title">
             <Icon name="minus" size={15} />
-            负向提示词（可选）
-          </span>
-          <span className="negative-meta">
+            负面提示词
+            <Badge tone="neutral">随成品保存</Badge>
+          </div>
+          <div className="negative-buttons">
+            <Button
+              size="sm"
+              variant="soft"
+              icon="copy"
+              disabled={!englishText.trim()}
+              onClick={copyTranslationToNegative}
+              title="把英文翻译复制一份作为负面提示词"
+            >
+              复制英文翻译
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="copy"
+              disabled={!negativeText.trim()}
+              onClick={() => void handleCopy(negativeText, '负面提示词')}
+            >
+              复制
+            </Button>
+          </div>
+        </header>
+        <p className="negative-hint">
+          一键把英文翻译复制一份作为负面提示词的起点，再按需修改。保存成品、历史快照和备份时都会包含负面提示词。
+        </p>
+        <textarea
+          className="editor-textarea negative-textarea"
+          value={negativeText}
+          onChange={(event) => setNegativeText(event.target.value)}
+          placeholder="lowres, bad anatomy, bad hands, extra fingers, watermark, text"
+          spellCheck={false}
+          aria-label="负面提示词"
+        />
+        <div className="negative-actions">
+          <span className="meta-text">
             {negativeText.length > 0 ? `${negativeText.length} 个字符` : '通常是英文，例如：lowres, blurry'}
           </span>
-          <Icon name="chevron-down" size={16} className="details-chevron" />
-        </summary>
-        <div className="negative-body">
-          <textarea
-            className="editor-textarea negative-textarea"
-            value={negativeText}
-            onChange={(event) => setNegativeText(event.target.value)}
-            placeholder="lowres, bad anatomy, bad hands, extra fingers, watermark, text"
-            spellCheck={false}
-            aria-label="负向提示词"
-          />
-          <div className="negative-actions">
-            <span className="meta-text">负向提示词会单独进入成品，不会与正向混在一起（可在设置中修改）。</span>
-            <div className="negative-buttons">
-              {hasCJK(negativeText) ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon="translate"
-                  loading={negativeBusy}
-                  onClick={() => void handleTranslateNegative()}
-                >
-                  翻译为英文
-                </Button>
-              ) : null}
+          <div className="negative-buttons">
+            {hasCJK(negativeText) ? (
               <Button
                 size="sm"
                 variant="ghost"
-                icon="trash"
-                disabled={!negativeText}
-                onClick={() =>
-                  confirmAction({
-                    title: '清空负向提示词？',
-                    message: '此操作可以用撤销恢复。',
-                    confirmLabel: '清空',
-                    danger: true,
-                    onConfirm: () => clearNegative(),
-                  })
-                }
+                icon="translate"
+                loading={negativeBusy}
+                onClick={() => void handleTranslateNegative()}
               >
-                清空
+                翻译为英文
               </Button>
-            </div>
+            ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="trash"
+              disabled={!negativeText}
+              onClick={() =>
+                confirmAction({
+                  title: '清空负面提示词？',
+                  message: '此操作可以用撤销恢复。',
+                  confirmLabel: '清空',
+                  danger: true,
+                  onConfirm: () => clearNegative(),
+                })
+              }
+            >
+              清空
+            </Button>
           </div>
         </div>
-      </details>
+      </section>
     </Card>
   );
 }

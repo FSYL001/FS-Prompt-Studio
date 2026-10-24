@@ -23,6 +23,15 @@ export interface ProviderTranslateRequest {
   config: TranslateConfig;
 }
 
+export interface TranslateSegmentPayload {
+  segments: Array<{ id: string; text: string }>;
+  direction: Direction;
+  mode?: TranslateMode;
+  dictionary?: DictionaryEntry[];
+  /** LoRA 触发词等必须原样保留的词。 */
+  protectedTerms?: string[];
+}
+
 export interface TranslationProvider {
   id: ProviderId;
   label: string;

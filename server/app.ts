@@ -31,6 +31,7 @@ const TranslateBodySchema = z.object({
     .array(z.object({ cn: z.string().max(200), en: z.string().max(400) }))
     .max(300)
     .optional(),
+  protectedTerms: z.array(z.string().max(200)).max(200).optional(),
 });
 
 const ConfigBodySchema = z.object({
@@ -136,6 +137,7 @@ export function createApp(): express.Express {
         direction: body.direction,
         mode: body.mode,
         dictionary: body.dictionary,
+        protectedTerms: body.protectedTerms,
       });
       res.json(result);
     } catch (error) {

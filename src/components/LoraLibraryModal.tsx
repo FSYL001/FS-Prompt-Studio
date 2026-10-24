@@ -37,6 +37,7 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
   const [name, setName] = useState(lora?.name ?? '');
   const [file, setFile] = useState(lora?.file ?? '');
   const [triggerText, setTriggerText] = useState((lora?.triggerWords ?? []).join(', '));
+  const [promptPrefix, setPromptPrefix] = useState(lora?.promptPrefix ?? '');
   const [descCn, setDescCn] = useState(lora?.descCn ?? '');
   const [descEn, setDescEn] = useState(lora?.descEn ?? '');
   const [defaultWeight, setDefaultWeight] = useState(lora?.defaultWeight ?? 0.8);
@@ -81,6 +82,7 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
       name: name.trim().slice(0, 160),
       file: file.trim().slice(0, 400),
       triggerWords: parseTriggers(triggerText),
+      promptPrefix: promptPrefix.slice(0, 2000),
       descCn: descCn.slice(0, 4000),
       descEn: descEn.slice(0, 4000),
       defaultWeight: Math.round(defaultWeight * 100) / 100,
@@ -187,6 +189,21 @@ function LoraEditForm({ lora, onBack }: { lora: Lora | null; onBack: () => void 
           value={triggerText}
           onChange={(event) => setTriggerText(event.target.value)}
           placeholder="例如：@dizzy, watercolor_style"
+          spellCheck={false}
+        />
+      </Field>
+
+      <Field
+        label="推荐提示词前缀（可选）"
+        hint="这个 LoRA 常用的质量词或风格前缀，例如 masterpiece, best quality。不会自动改写译文，可在详情里一键加入英文提示词。"
+      >
+        <textarea
+          className="input textarea"
+          value={promptPrefix}
+          onChange={(event) => setPromptPrefix(event.target.value)}
+          rows={2}
+          maxLength={2000}
+          placeholder="masterpiece, best quality, highly detailed"
           spellCheck={false}
         />
       </Field>
@@ -317,6 +334,7 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
           lora.descEn,
           lora.category,
           lora.notes,
+          lora.promptPrefix,
           ...lora.triggerWords,
         ]
           .join(' ')
@@ -363,6 +381,28 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
         already ? `英文提示词中已有 ${token}。` : `已把 ${token} 加入英文提示词（剪贴板不可用）。`,
         already ? 'info' : 'warning',
       );
+    }
+  };
+
+  const handlePrefix = async (prefix: string) => {
+    const clean = prefix.trim();
+    if (!clean) return;
+    const base = englishText.trim();
+    const already = base.toLowerCase().startsWith(clean.toLowerCase());
+    if (!already) {
+      const separator = /[,，.。]$/.test(clean) ? ' ' : ', ';
+      setEnglishText(`${clean}${separator}${base}`.trim());
+    }
+    try {
+      await copyText(clean);
+      toast(
+        already
+          ? '英文提示词已以这个前缀开头，前缀已复制。'
+          : '已把推荐前缀放到英文提示词开头，并复制到剪贴板。',
+        'success',
+      );
+    } catch {
+      toast(already ? '前缀已在英文开头。' : '已把推荐前缀放到英文提示词开头。', already ? 'info' : 'warning');
     }
   };
 
@@ -587,6 +627,42 @@ export function LoraLibraryModal({ onClose }: { onClose: () => void }) {
                     </div>
                   ) : (
                     <p className="lora-detail-empty">还没有触发词。点击「编辑信息」添加，例如 @dizzy。</p>
+                  )}
+                </div>
+
+                <div className="lora-detail-section">
+                  <div className="lora-detail-label">
+                    <span>推荐提示词前缀</span>
+                    <span className="lora-detail-hint">可置顶加入英文提示词</span>
+                  </div>
+                  {selected.promptPrefix.trim() ? (
+                    <>
+                      <pre className="lora-prefix">{selected.promptPrefix}</pre>
+                      <div className="lora-prefix-actions">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          icon="plus"
+                          onClick={() => void handlePrefix(selected.promptPrefix)}
+                        >
+                          加入英文开头
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon="copy"
+                          onClick={() => {
+                            void copyText(selected.promptPrefix)
+                              .then(() => toast('推荐前缀已复制。', 'success'))
+                              .catch(() => toast('复制失败，请手动选择前缀。', 'error'));
+                          }}
+                        >
+                          复制
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="lora-detail-empty">还没有推荐前缀。点击「编辑信息」填写，例如 masterpiece, best quality。</p>
                   )}
                 </div>
 

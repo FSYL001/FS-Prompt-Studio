@@ -32,6 +32,14 @@ describe('提示词语法保护', () => {
     expect(restored).toBe('(white hair:1.2)');
   });
 
+  it('保护 @触发词 与已知 LoRA 触发词，不翻译成普通词义', () => {
+    const source = '@dizzy, watercolor_style, 一个白发女孩';
+    const guarded = protectPromptSyntax(source, ['watercolor_style']);
+    expect(guarded.text).not.toContain('@dizzy');
+    expect(guarded.text).not.toContain('watercolor_style');
+    expect(restorePromptSyntax(guarded.text, guarded.tokens)).toBe(source);
+  });
+
   it('占位符丢失时取消本次翻译，避免破坏语法', () => {
     const guarded = protectPromptSyntax('<lora:style:0.8>');
     expect(() => restorePromptSyntax('a lora style', guarded.tokens)).toThrow(TranslationError);
@@ -78,6 +86,17 @@ describe('翻译编排（模拟服务）', () => {
     });
     expect(result.results[0].text).toContain(':1.2');
     expect(result.results[0].text).toContain('white hair');
+  });
+
+  it('真实翻译流程中保留 @dizzy 触发词', async () => {
+    const result = await translateSegments({
+      segments: [{ id: 't', text: '@dizzy, 一个白发女孩' }],
+      direction: 'zh-en',
+      protectedTerms: ['dizzy'],
+      config: mockConfig,
+    });
+    expect(result.results[0].text).toContain('@dizzy');
+    expect(result.results[0].text.toLowerCase()).toContain('girl');
   });
 
   it('英文转中文可用', async () => {

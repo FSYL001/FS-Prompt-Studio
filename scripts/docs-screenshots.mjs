@@ -27,11 +27,29 @@ await page.getByRole('dialog').getByRole('button', { name: '添加 LoRA' }).clic
 await page.getByPlaceholder('例如：清新水彩风').fill('水彩风格');
 await page.getByPlaceholder('style_watercolor.safetensors').fill('watercolor_v1.safetensors');
 await page.getByPlaceholder('例如：@dizzy, watercolor_style').fill('watercolor_style');
+await page.getByPlaceholder('masterpiece, best quality, highly detailed').fill('masterpiece, best quality');
 await page.getByPlaceholder('这个 LoRA 适合什么画面、效果如何。').fill('清透的水彩质感，适合人物插画与日常场景。');
 await page.getByRole('button', { name: '保存 LoRA' }).click();
 await page.getByRole('dialog').locator('.lora-index-item', { hasText: '水彩风格' }).click();
 await page.getByRole('dialog').getByRole('button', { name: '添加到当前作品' }).click();
 await page.getByRole('dialog').getByRole('button', { name: '关闭' }).last().click();
+
+// 负面提示词一键复制英文翻译
+await page.getByRole('button', { name: '复制英文翻译' }).click();
+await page.waitForTimeout(500);
+
+// 右侧小翻译：@触发词原样保留
+const quick = page.locator('.quick-translate-card');
+await quick.getByRole('textbox', { name: '小翻译输入' }).fill('@dizzy 一个白发女孩');
+await quick.getByRole('button', { name: '翻译' }).click();
+await page.waitForFunction(
+  () => {
+    const el = document.querySelector('textarea[aria-label="小翻译结果"]');
+    return el && el.value.trim().length > 0;
+  },
+  undefined,
+  { timeout: 45000 },
+);
 
 await page.locator('.products-card .btn-primary').click();
 await page.locator('.product-card').first().waitFor();
