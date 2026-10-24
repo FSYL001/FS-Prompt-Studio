@@ -45,10 +45,22 @@ export function AboutSettings() {
             Lucide（ISC）+ Simple Icons（CC0）
           </a>
         </div>
+        <div className="project-meta-wide">
+          <span>GitHub 项目地址</span>
+          <a href={PROJECT.github} target="_blank" rel="noopener noreferrer">
+            {PROJECT.github}
+          </a>
+        </div>
       </div>
 
       <div className="project-links" aria-label="项目与作者链接">
-        <a className="project-link" href={PROJECT.github} target="_blank" rel="noopener noreferrer">
+        <a
+          className="project-link"
+          href={PROJECT.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={PROJECT.github}
+        >
           <img className="project-link-icon" src="/icons/github.svg" alt="" aria-hidden />
           GitHub 项目
         </a>
