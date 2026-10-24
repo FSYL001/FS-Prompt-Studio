@@ -889,6 +889,7 @@
 .project-link {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   min-height: 27px;
   padding: 3px 9px;
   font-size: 11px;
@@ -897,6 +898,13 @@
   border: 1px solid var(--accent-border);
   border-radius: 6px;
   text-decoration: none;
+}
+
+.project-link-icon {
+  width: 13px;
+  height: 13px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .project-link:hover {

@@ -32,7 +32,7 @@
 - 爱发电：<https://ifdian.net/a/fsyl001>
 - 博客：<https://blog.fsyl001.sbs>
 - 邮箱：<email@fsyl001.sbs> / <3320969905@qq.com>
-- 图标：Lucide `wand-sparkles`（ISC），见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- 图标：Lucide `wand-sparkles`（ISC）；GitHub / Bilibili / 抖音 / 爱发电 品牌图标来自 Simple Icons（CC0），见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
 
 ---

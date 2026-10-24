@@ -45,6 +45,7 @@ await page.waitForTimeout(500);
 // 右侧小翻译：@触发词原样保留
 const quick = page.locator('.quick-translate-card');
 await quick.getByRole('textbox', { name: '小翻译输入' }).fill('@dizzy 一个白发女孩');
+await quick.getByRole('textbox', { name: '小翻译输入' }).press('Escape');
 await quick.getByRole('button', { name: '翻译' }).click();
 await page.waitForFunction(
   () => {
@@ -52,8 +53,11 @@ await page.waitForFunction(
     return el && el.value.trim().length > 0;
   },
   undefined,
-  { timeout: 45000 },
-);
+  { timeout: 15000 },
+).catch(() => {
+  console.warn('quick translate unavailable; continuing screenshots without result');
+});
+await page.waitForTimeout(300);
 
 await page.locator('.products-card .btn-primary').click();
 await page.locator('.product-card').first().waitFor();
