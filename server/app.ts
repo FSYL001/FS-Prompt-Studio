@@ -13,7 +13,9 @@ import { translateSegments, testTranslation, getProvider } from './translate/ind
 import { TranslationError, providerRequiresKey } from './translate/types.js';
 import type { ProviderId, TranslateConfig } from './translate/types.js';
 
-const ProviderEnum = z.enum(['google-free', 'openai', 'deepl', 'mock']);
+const ProviderEnum = z.enum(['google-free', 'mymemory', 'openai', 'deepl', 'mock']);
+
+const ProxyModeEnum = z.enum(['auto', 'manual', 'off']);
 
 const TranslateBodySchema = z.object({
   segments: z
@@ -40,6 +42,8 @@ const ConfigBodySchema = z.object({
   model: z.string().max(160).optional(),
   timeoutMs: z.number().int().min(2000).max(120000).optional(),
   apiKey: z.string().max(500).optional(),
+  proxyMode: ProxyModeEnum.optional(),
+  proxyUrl: z.string().max(400).optional(),
 });
 
 const TestBodySchema = z.object({
@@ -48,6 +52,8 @@ const TestBodySchema = z.object({
   model: z.string().max(160).optional(),
   timeoutMs: z.number().int().min(2000).max(120000).optional(),
   apiKey: z.string().max(500).optional(),
+  proxyMode: ProxyModeEnum.optional(),
+  proxyUrl: z.string().max(400).optional(),
 });
 
 function configFromTestBody(body: z.infer<typeof TestBodySchema>): TranslateConfig {
@@ -65,6 +71,8 @@ function configFromTestBody(body: z.infer<typeof TestBodySchema>): TranslateConf
         : providerChanged
           ? ''
           : saved.apiKey,
+    proxyMode: body.proxyMode ?? saved.proxyMode,
+    proxyUrl: body.proxyUrl ?? saved.proxyUrl,
   };
 }
 
@@ -95,6 +103,8 @@ export function createApp(): express.Express {
       providerLabel: config.label,
       isMock: config.isMock,
       hasKey: config.hasKey,
+      hasProxy: config.hasProxy,
+      proxySource: config.proxySource,
     });
   });
 

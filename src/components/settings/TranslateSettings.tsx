@@ -20,7 +20,14 @@ const PROVIDER_INFO: Array<{
     value: 'google-free',
     label: 'Google 翻译公共接口（免费）',
     description:
-      '无需密钥，开箱即用。使用的是非官方公共接口，可能限流或随时不可用，适合个人试用；正式长期使用建议配置自己的 API。',
+      '无需密钥，开箱即用。使用的是非官方公共接口，可能限流或随时不可用；大陆网络建议在下方配置 VPN/Clash 的本地代理。',
+    requiresKey: false,
+  },
+  {
+    value: 'mymemory',
+    label: 'MyMemory 免费备用（无需密钥）',
+    description:
+      'Google 超时或无法连接时可直接切换。无需密钥，免费额度有限；适合临时使用，长文建议配置自己的 API。',
     requiresKey: false,
   },
   {
@@ -57,6 +64,10 @@ export function TranslateSettings() {
   const [baseUrl, setBaseUrl] = useState(serverConfig?.baseUrl ?? '');
   const [model, setModel] = useState(serverConfig?.model ?? 'gpt-4o-mini');
   const [timeoutMs, setTimeoutMs] = useState(serverConfig?.timeoutMs ?? 20000);
+  const [proxyMode, setProxyMode] = useState<'auto' | 'manual' | 'off'>(
+    serverConfig?.proxyMode ?? 'auto',
+  );
+  const [proxyUrl, setProxyUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,6 +81,8 @@ export function TranslateSettings() {
     setBaseUrl(serverConfig.baseUrl);
     setModel(serverConfig.model);
     setTimeoutMs(serverConfig.timeoutMs);
+    setProxyMode(serverConfig.proxyMode);
+    setProxyUrl('');
     setApiKey('');
     setTestResult(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,14 +102,18 @@ export function TranslateSettings() {
       model: string;
       timeoutMs: number;
       apiKey?: string;
+      proxyMode: 'auto' | 'manual' | 'off';
+      proxyUrl?: string;
     } = {
       provider,
       baseUrl: baseUrl.trim(),
       model: model.trim(),
       timeoutMs,
+      proxyMode,
     };
     if (apiKey.trim()) patch.apiKey = apiKey.trim();
     else if (providerChanged) patch.apiKey = '';
+    if (proxyUrl.trim()) patch.proxyUrl = proxyUrl.trim();
     return patch;
   };
 
@@ -231,7 +248,9 @@ export function TranslateSettings() {
           hint={
             provider === 'google-free'
               ? '留空使用官方公共地址；也可以通过代理地址访问。'
-              : provider === 'deepl'
+              : provider === 'mymemory'
+                ? '留空使用 https://api.mymemory.translated.net；一般不需要修改。'
+                : provider === 'deepl'
                 ? '免费版：https://api-free.deepl.com；专业版：https://api.deepl.com'
                 : provider === 'openai'
                   ? '例如 https://api.openai.com/v1 或 https://api.deepseek.com/v1，留空使用默认值。'
@@ -259,6 +278,62 @@ export function TranslateSettings() {
           />
         </Field>
       </div>
+
+      <SectionLabel hint="服务端访问 Google / MyMemory 时使用">网络代理</SectionLabel>
+      <div className="settings-row">
+        <Field
+          label="代理模式"
+          hint="只影响本地服务端访问翻译网站，不改变浏览器代理。"
+        >
+          <select
+            className="input select"
+            value={proxyMode}
+            onChange={(event) => {
+              setProxyMode(event.target.value as 'auto' | 'manual' | 'off');
+              setTestResult(null);
+              setError(null);
+            }}
+          >
+            <option value="auto">自动检测（环境变量 / Windows 系统代理）</option>
+            <option value="manual">手动填写</option>
+            <option value="off">不使用代理（直连）</option>
+          </select>
+        </Field>
+        <Field
+          label="代理地址"
+          hint="HTTP 或 SOCKS。Clash 常见 7890；v2rayN HTTP 常见 10809、SOCKS 常见 10808。"
+        >
+          <input
+            className="input"
+            value={proxyUrl}
+            onChange={(event) => setProxyUrl(event.target.value)}
+            placeholder={
+              serverConfig?.hasProxy
+                ? `已检测到 ${serverConfig.proxyDisplay} · 留空保持不变`
+                : 'http://127.0.0.1:7890'
+            }
+            disabled={proxyMode !== 'manual'}
+            spellCheck={false}
+          />
+        </Field>
+      </div>
+      <p className="settings-note">
+        {proxyMode === 'off'
+          ? '已关闭代理：Node 服务端会直接连接翻译网站。'
+          : proxyMode === 'manual'
+            ? serverConfig?.hasProxy && serverConfig.proxyMode === 'manual'
+              ? `当前手动代理：${serverConfig.proxyDisplay}。留空保存会保持原代理。`
+              : '填写 VPN/Clash/v2rayN 的本地 HTTP 或 SOCKS 端口；保存后可点「测试连接」验证。'
+            : serverConfig?.hasProxy
+              ? `已自动检测到代理：${serverConfig.proxyDisplay}（来源：${
+                  serverConfig.proxySource === 'system'
+                    ? 'Windows 系统代理'
+                    : serverConfig.proxySource === 'env'
+                      ? '环境变量'
+                      : '配置文件'
+                }）。`
+              : '未检测到代理。如果浏览器能打开 Google 但工具超时，请改「手动填写」，输入 VPN 的本地端口。'}
+      </p>
 
       {provider === 'openai' ? (
         <Field
@@ -341,7 +416,10 @@ export function TranslateSettings() {
       <SectionLabel>隐私与服务端配置</SectionLabel>
       <ul className="settings-list">
         <li>
-          翻译请求经由本地后端代理发送，浏览器不会直接调用第三方接口，也不会保存 API Key。
+          翻译请求经由本地后端发送，浏览器不会直接调用第三方接口，也不会保存 API Key。
+        </li>
+        <li>
+          代理只用于服务端访问翻译网站，不会修改浏览器代理，也不会改变本地页面连接。
         </li>
         <li>
           服务端配置文件：

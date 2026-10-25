@@ -133,7 +133,7 @@ export default function App() {
 
         <div className="footer-note">
           <span>
-            FS-Prompt Studio · v1.4.1 · 数据保存在本地 · © 2026 FSYL001 · 非商用需署名
+            FS-Prompt Studio · v1.4.2 · 数据保存在本地 · © 2026 FSYL001 · 非商用需署名
             {serverConfig ? ` · 翻译：${serverConfig.isMock ? '模拟模式' : serverConfig.label}` : ''}
           </span>
           <button

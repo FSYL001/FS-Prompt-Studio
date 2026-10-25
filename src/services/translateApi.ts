@@ -2,7 +2,7 @@ import type { DictionaryEntry, Direction, TranslateMode } from '../domain/types'
 
 /** 与服务端 /api/translate/config 对应的公开配置（永远不包含 API Key 明文）。 */
 export interface PublicTranslateConfig {
-  provider: 'google-free' | 'openai' | 'deepl' | 'mock';
+  provider: 'google-free' | 'mymemory' | 'openai' | 'deepl' | 'mock';
   label: string;
   baseUrl: string;
   model: string;
@@ -14,6 +14,10 @@ export interface PublicTranslateConfig {
   dataDestination: string;
   defaultBaseUrls: Record<string, string>;
   configPath: string;
+  proxyMode: 'auto' | 'manual' | 'off';
+  hasProxy: boolean;
+  proxyDisplay: string;
+  proxySource: 'config' | 'env' | 'system' | 'none';
 }
 
 export interface TranslateResultItem {
@@ -126,6 +130,8 @@ export async function saveTranslateConfig(patch: {
   model?: string;
   timeoutMs?: number;
   apiKey?: string;
+  proxyMode?: PublicTranslateConfig['proxyMode'];
+  proxyUrl?: string;
 }): Promise<PublicTranslateConfig> {
   const data = await request<{ config: PublicTranslateConfig }>(
     '/api/translate/config',
@@ -145,6 +151,8 @@ export async function testTranslation(patch: {
   model?: string;
   timeoutMs?: number;
   apiKey?: string;
+  proxyMode?: PublicTranslateConfig['proxyMode'];
+  proxyUrl?: string;
 }): Promise<TestResult> {
   return request<TestResult>(
     '/api/translate/test',

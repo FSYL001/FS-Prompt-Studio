@@ -1,6 +1,7 @@
-export type ProviderId = 'google-free' | 'openai' | 'deepl' | 'mock';
+export type ProviderId = 'google-free' | 'mymemory' | 'openai' | 'deepl' | 'mock';
 export type Direction = 'zh-en' | 'en-zh';
 export type TranslateMode = 'faithful' | 'natural';
+export type ProxyMode = 'auto' | 'manual' | 'off';
 
 export interface DictionaryEntry {
   cn: string;
@@ -13,6 +14,8 @@ export interface TranslateConfig {
   model: string;
   timeoutMs: number;
   apiKey: string;
+  proxyMode: ProxyMode;
+  proxyUrl: string;
 }
 
 export interface ProviderTranslateRequest {
@@ -58,6 +61,7 @@ export class TranslationError extends Error {
 
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   'google-free': 'Google 翻译公共接口（免费，无需密钥）',
+  mymemory: 'MyMemory 免费备用（无需密钥）',
   openai: 'OpenAI 兼容接口',
   deepl: 'DeepL API',
   mock: '本地模拟翻译（仅演示，不是真实翻译）',
@@ -65,6 +69,7 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
 
 export const DEFAULT_BASE_URLS: Record<ProviderId, string> = {
   'google-free': 'https://translate.googleapis.com',
+  mymemory: 'https://api.mymemory.translated.net',
   openai: 'https://api.openai.com/v1',
   deepl: 'https://api-free.deepl.com',
   mock: '',

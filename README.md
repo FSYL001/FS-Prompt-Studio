@@ -25,7 +25,7 @@
 ![设置关于页](docs/screenshots/about.png)
 
 - 作者 / 维护：**FSYL001**
-- 版本：**v1.4.1**
+- 版本：**v1.4.2**
 - GitHub：<https://github.com/FSYL001/FS-Prompt-Studio>
 - Bilibili：<https://space.bilibili.com/450000657>
 - 抖音：<https://www.douyin.com/user/MS4wLjABAAAAzWfG071S0Ol0_wF3xT1i0oL5eSpPdiYZZY_gKib9S_M>
@@ -136,7 +136,7 @@
 
 下载并解压：
 
-`FS-Prompt-Studio-v1.4.1-Windows-x64-portable.zip`
+`FS-Prompt-Studio-v1.4.2-Windows-x64-portable.zip`
 
 1. 解压到任意目录（中文路径也可以）；
 2. 双击 `start.bat`；
@@ -189,6 +189,23 @@ npm start
 
 这是非官方公共接口，可能限流或不可用；请求失败会显示中文原因并保留原文。已内置 401/403/404/429/超时/网络错误处理与 24 小时服务端缓存。
 
+### 大陆网络 / VPN：代理设置
+
+浏览器的 VPN 不一定会被本地 Node 服务端使用。如果浏览器能打开 Google，但工具提示超时：
+
+1. 打开「设置 → 翻译服务 → 网络代理」；
+2. 选择「手动填写」；
+3. 填 VPN/Clash 的本地 HTTP 或 SOCKS 地址：
+   - Clash / Clash Verge：`http://127.0.0.1:7890`
+   - v2rayN：HTTP `http://127.0.0.1:10809`，SOCKS `socks5://127.0.0.1:10808`
+4. 保存后点「测试连接」。
+
+默认是「自动检测」，会依次读取 `PROMPT_STUDIO_PROXY`、`HTTPS_PROXY`、`HTTP_PROXY`、`ALL_PROXY` 和 Windows 系统代理。代理只影响服务端访问翻译网站，不改变浏览器代理。
+
+### 备用：MyMemory 免费接口
+
+Google 超时或频繁失败时，可在「翻译服务类型」选择 **MyMemory 免费备用**。无需密钥，真实机器翻译，但免费额度有限，长文或大量请求可能被限流；正式长期使用仍建议配置自己的 API。
+
 ### 推荐：OpenAI 兼容接口
 
 「设置 → 翻译服务」选择「OpenAI 兼容接口」，填写接口地址、模型与 Key：
@@ -214,12 +231,14 @@ npm start
 
 | 变量 | 说明 |
 | --- | --- |
-| `PROMPT_STUDIO_TRANSLATE_PROVIDER` | `google-free` / `openai` / `deepl` / `mock` |
+| `PROMPT_STUDIO_TRANSLATE_PROVIDER` | `google-free` / `mymemory` / `openai` / `deepl` / `mock` |
 | `PROMPT_STUDIO_TRANSLATE_BASE_URL` | 接口地址 |
 | `PROMPT_STUDIO_TRANSLATE_MODEL` | 模型名称 |
 | `PROMPT_STUDIO_TRANSLATE_API_KEY` | 通用密钥 |
 | `OPENAI_API_KEY` / `DEEPL_API_KEY` | 对应服务密钥 |
 | `PROMPT_STUDIO_TRANSLATE_TIMEOUT_MS` | 超时毫秒数 |
+| `PROMPT_STUDIO_PROXY` | 服务端代理，例如 `http://127.0.0.1:7890` 或 `socks5://127.0.0.1:10808` |
+| `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` | 兼容常见代理环境变量 |
 | `PROMPT_STUDIO_DATA_DIR` | 服务端配置目录 |
 
 浏览器接口永远不返回 Key 明文，只能看到「已配置 / 未配置 / 来自环境变量」。
@@ -287,7 +306,7 @@ npm start
 │  │  ├─ LoraLibraryModal.tsx  LoRA 记事本
 │  │  └─ 其它编辑器/历史/设置/成品组件
 │  └─ styles/global.css + v11.css
-├─ tests/                      77 项 Vitest
+├─ tests/                      79 项 Vitest
 ├─ scripts/                    E2E 与截图脚本
 └─ docs/screenshots/
 ```
@@ -373,7 +392,7 @@ npm start
 npm test
 ```
 
-结果：**9 个测试文件、77 项全部通过**。
+结果：**10 个测试文件、79 项全部通过**。
 
 覆盖：语言识别、分词/分段、括号与 LoRA 标签保护、标点映射、对齐区间、长句整句对照、片段权重括号、加权统计、成品组装、LoRA 语法、TXT 导出、翻译编排/缓存/跳过/失败、ComfyUI 节点改写、版本 diff、IndexedDB、备份导入、Express API（密钥不回传）。
 
@@ -479,7 +498,13 @@ npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 
 ### 翻译失败：Google 接口不可用
 
-新版会自动在 `translate.googleapis.com` 和 `translate.google.com` 之间切换；如果两个都不可达，通常是本机网络无法直连 Google。可开启系统代理，或在「设置 → 翻译服务」改用 OpenAI 兼容接口。
+新版会自动在 `translate.googleapis.com` 和 `translate.google.com` 之间切换；如果两个都超时，请在「设置 → 翻译服务 → 网络代理」填写 VPN/Clash 的本地代理端口。服务端 Node 不读取浏览器代理，也不自动使用浏览器 VPN。
+
+如果代理仍不理想，直接把翻译服务切换为 **MyMemory 免费备用**，无需密钥即可先恢复翻译。
+
+### 翻译失败：可选择 MyMemory / 检查代理
+
+如果 Google 超时，先在「设置 → 翻译服务」切换为 **MyMemory 免费备用**；或在「网络代理」里选择手动填写代理地址。代理端口必须是本机 VPN/Clash/v2rayN 提供的 HTTP 或 SOCKS 端口，而不是浏览器插件自己的内部设置。
 
 ### 点「前往生图」打开 404 / 连接失败
 
@@ -526,7 +551,7 @@ ComfyUI 默认地址是 `http://127.0.0.1:8188/`。请先启动 ComfyUI，或在
 | `npm run dev` | 同时启动前端与 API |
 | `npm run build` | 类型检查 + 构建前端 + 编译服务端 |
 | `npm start` | 生产模式（默认 8787） |
-| `npm test` | 77 项 Vitest |
+| `npm test` | 79 项 Vitest |
 | `npm run e2e:smoke` | 主流程浏览器验收 |
 | `npm run e2e:flows` | 扩展流程验收 |
 | `npm run e2e:failure` | 翻译失败保护验收 |

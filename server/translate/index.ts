@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { getTranslateConfig } from '../config.js';
 import { protectPromptSyntax, restorePromptSyntax } from './guard.js';
 import { googleFreeProvider } from './providers/google.js';
+import { myMemoryProvider } from './providers/mymemory.js';
 import { openaiProvider } from './providers/openai.js';
 import { deeplProvider } from './providers/deepl.js';
 import { mockProvider } from './providers/mock.js';
@@ -21,6 +22,7 @@ import type {
 
 const providers: Record<ProviderId, TranslationProvider> = {
   'google-free': googleFreeProvider,
+  mymemory: myMemoryProvider,
   openai: openaiProvider,
   deepl: deeplProvider,
   mock: mockProvider,

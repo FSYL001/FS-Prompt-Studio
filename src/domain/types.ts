@@ -27,7 +27,7 @@ export type Direction = (typeof DIRECTIONS)[number];
 export const TRANSLATE_MODES = ['faithful', 'natural'] as const;
 export type TranslateMode = (typeof TRANSLATE_MODES)[number];
 
-export const PROVIDERS = ['google-free', 'openai', 'deepl', 'mock'] as const;
+export const PROVIDERS = ['google-free', 'mymemory', 'openai', 'deepl', 'mock'] as const;
 export type ProviderId = (typeof PROVIDERS)[number];
 
 export const THEMES = ['light', 'dark', 'system'] as const;

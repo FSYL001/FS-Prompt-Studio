@@ -13,6 +13,8 @@ const mockConfig = {
   model: '',
   timeoutMs: 5000,
   apiKey: '',
+  proxyMode: 'auto' as const,
+  proxyUrl: '',
 };
 
 describe('提示词语法保护', () => {
@@ -119,6 +121,8 @@ describe('翻译编排（模拟服务）', () => {
           model: 'gpt-4o-mini',
           timeoutMs: 5000,
           apiKey: '',
+          proxyMode: 'auto',
+          proxyUrl: '',
         },
       }),
     ).rejects.toMatchObject({ code: 'NO_KEY' });

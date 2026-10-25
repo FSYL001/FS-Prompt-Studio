@@ -13,6 +13,8 @@ const mockConfig = {
   model: '',
   timeoutMs: 5000,
   apiKey: '',
+  proxyMode: 'auto' as const,
+  proxyUrl: '',
 };
 
 describe('核心流程：草稿 → 翻译 → 对照 → 成品 → 历史 → 工作流', () => {
@@ -105,6 +107,8 @@ describe('核心流程：草稿 → 翻译 → 对照 → 成品 → 历史 → 
           model: 'gpt-4o-mini',
           timeoutMs: 5000,
           apiKey: '',
+          proxyMode: 'auto',
+          proxyUrl: '',
         },
       });
       resultText = 'should not happen';

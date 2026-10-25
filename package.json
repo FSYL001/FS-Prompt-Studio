@@ -1,7 +1,7 @@
 {
   "name": "fs-prompt-studio",
   "private": true,
-  "version": "1.4.1",
+  "version": "1.4.2",
   "type": "module",
   "description": "FS-Prompt Studio - 中文优先的 AI 生图提示词编辑器（本地优先 + 可配置翻译服务）",
   "author": "FSYL001",
@@ -22,8 +22,10 @@
   },
   "dependencies": {
     "express": "^4.21.1",
+    "https-proxy-agent": "^7.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "socks-proxy-agent": "^8.0.5",
     "zod": "^3.23.8",
     "zustand": "^4.5.5"
   },
