@@ -63,6 +63,21 @@ function timeoutSignal(ms: number): AbortSignal {
   return controller.signal;
 }
 
+function connectionHint(): string {
+  if (typeof window === 'undefined') return '';
+  const { protocol, hostname, port } = window.location;
+  if (protocol === 'file:') {
+    return '你正在直接打开本地 HTML 文件，浏览器会拦截 API 请求。请关闭此页，双击文件夹里的 start.bat，并访问 http://127.0.0.1:8787 。';
+  }
+  if (port === '5173') {
+    return '前端已经打开，但本地 API 8787 没有响应。源码版请确认 npm run dev 的 API 窗口没有退出；便携版请改用 start.bat 打开的 8787 页面。';
+  }
+  if (port === '8787') {
+    return '当前页面由本地服务提供，但 API 请求失败。可能 Node 进程已退出或端口被占用，请关闭窗口后重新双击 start.bat。';
+  }
+  return `请确认本地服务正在运行，并访问 http://127.0.0.1:8787（当前：${hostname}${port ? `:${port}` : ''}）。`;
+}
+
 async function request<T>(path: string, init: RequestInit, timeoutMs: number): Promise<T> {
   let response: Response;
   try {
@@ -73,7 +88,7 @@ async function request<T>(path: string, init: RequestInit, timeoutMs: number): P
       throw new ApiError('请求本地翻译服务超时，请检查后端是否正常运行。', 'TIMEOUT');
     }
     throw new ApiError(
-      `无法连接本地翻译服务（${reason}）。请确认已运行 npm run dev，且 API 服务端口 8787 可用。`,
+      `连不上本地翻译服务（${reason}）。${connectionHint()}`,
       'NETWORK',
     );
   }

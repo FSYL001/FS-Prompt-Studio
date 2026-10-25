@@ -5,6 +5,20 @@ import { TranslationError, translationTimeoutError } from '../types.js';
 import type { Direction, ProviderTranslateRequest, TranslationProvider } from '../types.js';
 
 const MAX_CHARS = 1800;
+const DEFAULT_BASES = ['https://translate.googleapis.com', 'https://translate.google.com'];
+const FALLBACK_CODES = new Set([
+  'NETWORK',
+  'TIMEOUT',
+  'RATE_LIMIT',
+  'UPSTREAM',
+  'HTTP_ERROR',
+  'BAD_RESPONSE',
+  'EMPTY',
+]);
+
+let preferredBase: string | null = null;
+let preferredAt = 0;
+const PREFERRED_TTL_MS = 10 * 60 * 1000;
 
 /**
  * 使用 node:https 而不是全局 fetch 调用 Google 公共接口。
@@ -80,7 +94,7 @@ interface GoogleSegment {
 async function translateOne(
   text: string,
   direction: Direction,
-  baseUrl: string,
+  bases: string[],
   timeoutMs: number,
 ): Promise<string> {
   if (text.length > MAX_CHARS) {
@@ -91,33 +105,74 @@ async function translateOne(
     );
   }
   const { source, target } = languageCodes(direction);
-  const url = new URL('/translate_a/single', baseUrl || 'https://translate.googleapis.com');
-  url.searchParams.set('client', 'gtx');
-  url.searchParams.set('sl', source);
-  url.searchParams.set('tl', target);
-  url.searchParams.set('dt', 't');
-  url.searchParams.set('q', text);
+  let lastError: unknown;
 
-  const { status, body } = await getText(url.toString(), timeoutMs);
-  if (status !== 200) throw describeHttpError(status, body);
+  for (const base of bases) {
+    const url = new URL('/translate_a/single', base);
+    url.searchParams.set('client', 'gtx');
+    url.searchParams.set('sl', source);
+    url.searchParams.set('tl', target);
+    url.searchParams.set('dt', 't');
+    url.searchParams.set('q', text);
 
-  let data: unknown;
-  try {
-    data = JSON.parse(body);
-  } catch {
-    throw new TranslationError('翻译服务返回了无法解析的数据。', 'BAD_RESPONSE', body.slice(0, 200));
+    try {
+      const { status, body } = await getText(url.toString(), timeoutMs);
+      if (status !== 200) throw describeHttpError(status, body);
+
+      let data: unknown;
+      try {
+        data = JSON.parse(body);
+      } catch {
+        throw new TranslationError('翻译服务返回了无法解析的数据。', 'BAD_RESPONSE', body.slice(0, 200));
+      }
+      if (!Array.isArray(data) || !Array.isArray(data[0])) {
+        throw new TranslationError('翻译服务返回格式异常，请稍后重试。', 'BAD_RESPONSE');
+      }
+      const translated = (data[0] as GoogleSegment[])
+        .map((segment) => (Array.isArray(segment) && typeof segment[0] === 'string' ? segment[0] : ''))
+        .join('')
+        .trim();
+      if (!translated) {
+        throw new TranslationError('翻译服务返回了空结果，请稍后重试。', 'EMPTY');
+      }
+      preferredBase = base;
+      preferredAt = Date.now();
+      return translated;
+    } catch (error) {
+      lastError = error;
+      const code = error instanceof TranslationError ? error.code : 'UNKNOWN';
+      if (!FALLBACK_CODES.has(code)) throw error;
+    }
   }
-  if (!Array.isArray(data) || !Array.isArray(data[0])) {
-    throw new TranslationError('翻译服务返回格式异常，请稍后重试。', 'BAD_RESPONSE');
+
+  const baseError =
+    lastError instanceof TranslationError
+      ? lastError
+      : new TranslationError(
+          `翻译服务连接失败：${lastError instanceof Error ? lastError.message : String(lastError)}`,
+          'NETWORK',
+        );
+  throw new TranslationError(
+    baseError.message,
+    baseError.code,
+    `${baseError.hint ? `${baseError.hint} ` : ''}已尝试 ${bases.join(' 和 ')}。如果仍然失败，通常是本机网络无法直连 Google；请开启系统代理，或在「设置 → 翻译服务」改用 OpenAI 兼容接口。`,
+    baseError.status,
+  );
+}
+
+function candidateBases(configuredBase: string): string[] {
+  const configured = (configuredBase || '').trim().replace(/\/+$/, '');
+  const isDefault = !configured || DEFAULT_BASES.includes(configured);
+  // 自定义地址（例如用户自己的代理）只使用该地址，不擅自改走 Google 公共域。
+  if (!isDefault) return [configured];
+
+  const bases: string[] = [];
+  if (preferredBase && Date.now() - preferredAt < PREFERRED_TTL_MS) bases.push(preferredBase);
+  for (const base of DEFAULT_BASES) {
+    if (!bases.includes(base)) bases.push(base);
   }
-  const translated = (data[0] as GoogleSegment[])
-    .map((segment) => (Array.isArray(segment) && typeof segment[0] === 'string' ? segment[0] : ''))
-    .join('')
-    .trim();
-  if (!translated) {
-    throw new TranslationError('翻译服务返回了空结果，请稍后重试。', 'EMPTY');
-  }
-  return translated;
+  if (configured && !bases.includes(configured)) bases.unshift(configured);
+  return bases;
 }
 
 export const googleFreeProvider: TranslationProvider = {
@@ -126,9 +181,9 @@ export const googleFreeProvider: TranslationProvider = {
   requiresKey: false,
   maxChars: MAX_CHARS,
   async translate(request: ProviderTranslateRequest): Promise<string[]> {
-    const baseUrl = request.config.baseUrl || 'https://translate.googleapis.com';
+    const bases = candidateBases(request.config.baseUrl);
     return mapWithConcurrency(request.texts, 3, (text: string) =>
-      translateOne(text, request.direction, baseUrl, request.config.timeoutMs),
+      translateOne(text, request.direction, bases, request.config.timeoutMs),
     );
   },
   async test(request: ProviderTranslateRequest): Promise<string> {

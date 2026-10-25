@@ -25,7 +25,7 @@
 ![设置关于页](docs/screenshots/about.png)
 
 - 作者 / 维护：**FSYL001**
-- 版本：**v1.4.0**
+- 版本：**v1.4.1**
 - GitHub：<https://github.com/FSYL001/FS-Prompt-Studio>
 - Bilibili：<https://space.bilibili.com/450000657>
 - 抖音：<https://www.douyin.com/user/MS4wLjABAAAAzWfG071S0Ol0_wF3xT1i0oL5eSpPdiYZZY_gKib9S_M>
@@ -136,7 +136,7 @@
 
 下载并解压：
 
-`FS-Prompt-Studio-v1.4.0-Windows-x64-portable.zip`
+`FS-Prompt-Studio-v1.4.1-Windows-x64-portable.zip`
 
 1. 解压到任意目录（中文路径也可以）；
 2. 双击 `start.bat`；
@@ -456,7 +456,30 @@ npm run e2e:failure   # 缺 Key 时草稿/中文翻译/英文均不被覆盖
 
 ### 双击 start.bat 没反应 / 提示 Node.js 不存在
 
-安装 Node.js 20+ 后重启命令行。若端口 8787 已被占用，脚本只会打开浏览器，不会重复启动。
+便携版自带 Node 运行时。请完整解压 ZIP 后再双击 `start.bat`，不要在压缩包预览窗口里运行。
+
+新版启动器会：
+
+1. 先启动本地服务；
+2. 等 `/api/health` 真正可用；
+3. 再打开浏览器，避免“页面先打开、API 还没起来”。
+
+如果 8787 已被占用，会自动尝试 8788、8789 等端口，并在窗口里打印实际地址。保持窗口开启；关闭窗口即停止服务。
+
+### 翻译失败：Failed to fetch / 无法连接本地翻译服务
+
+这不是 Google 翻译失败，而是浏览器没有连上本地 API。请按顺序检查：
+
+1. 不要直接双击 `dist/index.html`；请双击根目录的 `start.bat`，访问它打印的 `http://127.0.0.1:8787`。
+2. 黑色命令行窗口必须保持开启；如果窗口已关闭，重新双击 `start.bat`。
+3. 如果使用的是源码版，确认 `npm run dev` 的 API 进程没有退出；也可直接使用便携版。
+4. 如果页面地址是 `file://...` 或 `http://127.0.0.1:5173` 而后端未启动，都会出现该错误。
+
+新版错误提示会直接告诉你当前是 `file://`、5173 前端还是 8787 服务的问题。
+
+### 翻译失败：Google 接口不可用
+
+新版会自动在 `translate.googleapis.com` 和 `translate.google.com` 之间切换；如果两个都不可达，通常是本机网络无法直连 Google。可开启系统代理，或在「设置 → 翻译服务」改用 OpenAI 兼容接口。
 
 ### 点「前往生图」打开 404 / 连接失败
 

@@ -1,6 +1,6 @@
 export const PROJECT = {
   name: 'FS-Prompt Studio',
-  version: '1.4.0',
+  version: '1.4.1',
   author: 'FSYL001',
   tagline: '中文优先的 AI 生图提示词编辑器',
   github: 'https://github.com/FSYL001/FS-Prompt-Studio',
